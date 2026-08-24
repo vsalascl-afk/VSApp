@@ -8,7 +8,7 @@
 
 > "Buenos días/tardes a todos. Gracias por estar aquí.
 >
-> Hoy les presentamos **ElecData Pro**, un sistema integral de gestión de órdenes de trabajo diseñado específicamente para optimizar las operaciones de servicio técnico en terreno.
+> Hoy les presentamos **VSApp**, un sistema integral de gestión de órdenes de trabajo diseñado específicamente para optimizar las operaciones de servicio técnico en terreno.
 >
 > Este sistema nace de una necesidad real: **eliminar el papel, centralizar la información y tener visibilidad en tiempo real** de todas las operaciones de su empresa."
 
@@ -24,15 +24,15 @@
 > 4. **Reportes manuales** — Generar informes toma horas de trabajo administrativo.
 > 5. **Sin control multi-empresa** — Si manejan múltiples razones sociales o clientes corporativos, todo se mezcla.
 >
-> **ElecData Pro resuelve todos estos problemas en una sola plataforma.**"
+> **VSApp resuelve todos estos problemas en una sola plataforma.**"
 
 ---
 
-## 💡 La Solución: ElecData Pro (5 minutos)
+## 💡 La Solución: VSApp (5 minutos)
 
 ### Qué es
 
-> "ElecData Pro es una **aplicación web moderna** accesible desde cualquier dispositivo — computador, tablet o celular — sin necesidad de instalar nada. Solo necesitan un navegador web y conexión a internet."
+> "VSApp es una **aplicación web moderna** accesible desde cualquier dispositivo — computador, tablet o celular — sin necesidad de instalar nada. Solo necesitan un navegador web y conexión a internet."
 
 ### Características principales
 
@@ -133,7 +133,7 @@
 
 ## 💰 Propuesta de Valor (2 minutos)
 
-> "¿Qué gana su empresa con ElecData Pro?
+> "¿Qué gana su empresa con VSApp?
 >
 > ✅ **Ahorro de tiempo** — Eliminación del papeleo y reportes manuales
 > ✅ **Visibilidad total** — Saben en todo momento qué pasa en terreno
@@ -187,7 +187,7 @@
 
 ## 🎬 Cierre (1 minuto)
 
-> "Para resumir, ElecData Pro les ofrece:
+> "Para resumir, VSApp les ofrece:
 >
 > 🔹 **Control total** de sus operaciones en terreno
 > 🔹 **Digitalización completa** del flujo de trabajo
@@ -195,7 +195,7 @@
 > 🔹 **Imagen profesional** ante sus clientes
 > 🔹 **Escalabilidad** para crecer sin límites
 >
-> Les agradecemos su tiempo y confianza. Estamos seguros de que ElecData Pro transformará la forma en que gestionan sus operaciones.
+> Les agradecemos su tiempo y confianza. Estamos seguros de que VSApp transformará la forma en que gestionan sus operaciones.
 >
 > **¿Cuándo les gustaría comenzar?**"
 
@@ -213,5 +213,5 @@
 ---
 
 *Documento preparado para presentación oficial*
-*ElecData Pro — Sistema de Gestión de Órdenes de Trabajo*
+*VSApp — Sistema de Gestión de Órdenes de Trabajo*
 *Versión 1.0 — Abril 2026*

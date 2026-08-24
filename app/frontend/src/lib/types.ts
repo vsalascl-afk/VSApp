@@ -19,6 +19,8 @@ export interface Usuario {
   email: string;
   rol: "superadmin" | "admin" | "tecnico" | "supervisor";
   empresa_id: string;
+  region?: string;
+  debe_cambiar_password?: boolean;
 }
 
 export interface OrdenTrabajo {
@@ -29,7 +31,7 @@ export interface OrdenTrabajo {
   direccion: string;
   tipo_serv: string;
   prioridad: "baja" | "media" | "alta";
-  estado: "pendiente" | "en_curso" | "completada";
+  estado: "pendiente" | "en_curso" | "en_revision" | "completada";
   notas: string;
   firma_por: string;
   fecha_inicio: string;
@@ -40,4 +42,6 @@ export interface OrdenTrabajo {
   foto_url?: string[];
   firma_cliente_url?: string;
   tecnico_nombre?: string;
+  codigo_activo?: string;
+  programacion_id?: string;
 }

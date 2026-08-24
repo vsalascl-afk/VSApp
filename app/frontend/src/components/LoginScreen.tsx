@@ -174,20 +174,17 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100 flex items-center justify-center p-4">
+    <div className="min-h-screen from-slate-100 to-blue-100 flex items-center justify-center p-4 mt-[0px] mr-[0px] mb-[0px] ml-[0px] pt-[16px] pr-[16px] pb-[16px] pl-[16px] rounded-none text-[16px] font-normal text-[#020817] bg-[#00000000] opacity-100">
       <Card className="w-full max-w-md shadow-xl">
-        <CardHeader className="text-center space-y-2">
+        <CardHeader className="flex flex-col p-6 space-y-2 mt-[0px] mr-[0px] mb-[0px] ml-[0px] pt-[24px] pr-[24px] pb-[24px] pl-[24px] rounded-none text-[16px] font-normal text-center text-[#020817] bg-[#00000000] opacity-100">
           <div className="mx-auto w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center">
             <Zap className="w-7 h-7 text-white" />
           </div>
-          <CardTitle className="text-2xl font-bold text-slate-800">
-            Sistema de Gestión OT
+          <CardTitle className="tracking-tight mt-[8px] mr-[0px] mb-[0px] ml-[0px] pt-[0px] pr-[0px] pb-[0px] pl-[0px] rounded-none text-[24px] font-bold text-center text-[#1E293B] bg-[#00000000] opacity-100">
+            Gestión OT - Operación & Mantenimiento
           </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Plataforma Multi-Empresa by VSA
-          </p>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-6 space-y-4 mt-[0px] mr-[0px] mb-[0px] ml-[0px] pt-[0px] pr-[24px] pb-[24px] pl-[24px] rounded-none text-[16px] font-normal text-[#020817] bg-[#00000000] opacity-100">
           <Input
             type="email"
             placeholder="Email"
@@ -212,6 +209,9 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           >
             {loading ? "Ingresando..." : "Ingresar"}
           </Button>
+          <p className="mt-[16px] mr-[0px] mb-[0px] ml-[0px] pt-[0px] pr-[0px] pb-[0px] pl-[0px] rounded-none text-[12px] font-bold text-center text-[#858782] bg-[#00000000] opacity-100">
+            Sistema Multi-Empresa / Powered by VSA
+          </p>
         </CardContent>
       </Card>
     </div>

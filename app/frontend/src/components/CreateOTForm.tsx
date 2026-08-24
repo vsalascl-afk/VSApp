@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { Usuario } from "@/lib/types";
 import { SUPABASE_URL, SUPABASE_KEY } from "@/lib/supabase";
+import { getRegionLabel } from "@/lib/regiones";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +31,8 @@ interface CreateOTFormProps {
 interface TecnicoOption {
   auth_id: string;
   nombre: string;
+  rol?: string;
+  region?: string;
 }
 
 export default function CreateOTForm({
@@ -61,7 +64,7 @@ export default function CreateOTForm({
       // Use service_role key to bypass RLS (avoids infinite recursion in policies)
       const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY;
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/usuarios?empresa_id=eq.${user.empresa_id}&select=auth_id,nombre,rol&order=nombre.asc`,
+        `${SUPABASE_URL}/rest/v1/usuarios?empresa_id=eq.${user.empresa_id}&select=auth_id,nombre,rol,region&order=nombre.asc`,
         {
           headers: {
             apikey: serviceKey || SUPABASE_KEY,
@@ -73,14 +76,18 @@ export default function CreateOTForm({
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
-          // Filter to show only tecnicos for assignment
+          // Filter to show tecnicos and supervisores from the same region
           const tecList: TecnicoOption[] = data
-            .filter((u: { auth_id?: string; nombre?: string; rol?: string }) => 
-              u.auth_id && u.nombre && u.rol === "tecnico"
+            .filter((u: { auth_id?: string; nombre?: string; rol?: string; region?: string }) => 
+              u.auth_id && u.nombre && 
+              (u.rol === "tecnico" || u.rol === "supervisor") &&
+              (!user.region || !u.region || u.region === user.region)
             )
-            .map((u: { auth_id: string; nombre: string }) => ({
+            .map((u: { auth_id: string; nombre: string; rol?: string; region?: string }) => ({
               auth_id: u.auth_id,
               nombre: u.nombre,
+              rol: u.rol,
+              region: u.region,
             }));
           setTecnicos(tecList);
         }
@@ -88,7 +95,7 @@ export default function CreateOTForm({
     } catch {
       // silently fail
     }
-  }, [canAssign, user.empresa_id, token]);
+  }, [canAssign, user.empresa_id, user.region, token]);
 
   useEffect(() => {
     if (open) {
@@ -142,6 +149,8 @@ export default function CreateOTForm({
         if (name) uploadedPhotos.push(name);
       }
 
+      // Generate fecha_inicio with explicit Chile timezone offset
+      const now = new Date();
       const body = {
         numero: "OT-" + Date.now(),
         cliente,
@@ -152,7 +161,7 @@ export default function CreateOTForm({
         estado,
         notas,
         firma_por: firmaPor,
-        fecha_inicio: new Date().toISOString(),
+        fecha_inicio: now.toISOString(),
         tecnico_id: tecnicoId || user.auth_id,
         empresa_id: user.empresa_id,
         foto_url: uploadedPhotos,
@@ -269,11 +278,17 @@ export default function CreateOTForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">Tipo de Servicio</Label>
-            <Input
-              value={tipoServ}
-              onChange={(e) => setTipoServ(e.target.value)}
-              placeholder="Tipo de servicio"
-            />
+            <Select value={tipoServ} onValueChange={setTipoServ}>
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccione tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="correctivo">Correctivo</SelectItem>
+                <SelectItem value="preventivo">Preventivo</SelectItem>
+                <SelectItem value="contrato">Contrato</SelectItem>
+                <SelectItem value="otro">Otro</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label className="text-xs">Firmado por</Label>

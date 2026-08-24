@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Usuario, Empresa } from "@/lib/types";
 import { SUPABASE_URL, SUPABASE_KEY, supabaseAdmin } from "@/lib/supabase";
+import { REGIONES, getRegionLabel } from "@/lib/regiones";
 import { createClient } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,6 +88,7 @@ export default function AdminPanel({ user, token }: AdminPanelProps) {
   const [newPassword, setNewPassword] = useState("");
   const [newRol, setNewRol] = useState<"tecnico" | "supervisor" | "admin">("tecnico");
   const [newEmpresaId, setNewEmpresaId] = useState(user.empresa_id);
+  const [newRegion, setNewRegion] = useState("santiago");
 
   const { toast } = useToast();
   const isSuperAdmin = user.rol === "superadmin";
@@ -173,6 +175,16 @@ export default function AdminPanel({ user, token }: AdminPanelProps) {
   }, [fetchUsuarios]);
 
   const handleCreateUser = async () => {
+    // Only superadmin can create users
+    if (!isSuperAdmin) {
+      toast({
+        title: "Sin permisos",
+        description: "Solo el Super Administrador puede crear usuarios",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!newNombre.trim() || !newEmail.trim() || !newPassword.trim()) {
       toast({
         title: "Campos requeridos",
@@ -243,12 +255,14 @@ export default function AdminPanel({ user, token }: AdminPanelProps) {
         ? parseInt(newEmpresaId, 10)
         : newEmpresaId;
 
-      const usuarioBody = {
+      const usuarioBody: Record<string, unknown> = {
         auth_id: signUpData.user.id,
         nombre: newNombre.trim(),
         email: newEmail.trim(),
         rol: newRol,
         empresa_id: empresaIdValue,
+        region: newRegion,
+        debe_cambiar_password: true,
       };
 
       // Use service_role key to bypass RLS when inserting into usuarios table
@@ -260,11 +274,35 @@ export default function AdminPanel({ user, token }: AdminPanelProps) {
         Prefer: "return=representation",
       };
 
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/usuarios`, {
+      let res = await fetch(`${SUPABASE_URL}/rest/v1/usuarios`, {
         method: "POST",
         headers: insertHeaders,
         body: JSON.stringify(usuarioBody),
       });
+
+      // If columns don't exist yet, retry without them
+      if (!res.ok) {
+        const errText = await res.text();
+        if (errText.includes("debe_cambiar_password") || errText.includes("region")) {
+          if (errText.includes("debe_cambiar_password")) delete usuarioBody.debe_cambiar_password;
+          if (errText.includes("region")) delete usuarioBody.region;
+          res = await fetch(`${SUPABASE_URL}/rest/v1/usuarios`, {
+            method: "POST",
+            headers: insertHeaders,
+            body: JSON.stringify(usuarioBody),
+          });
+          // If still fails (other column), retry without both
+          if (!res.ok) {
+            delete usuarioBody.debe_cambiar_password;
+            delete usuarioBody.region;
+            res = await fetch(`${SUPABASE_URL}/rest/v1/usuarios`, {
+              method: "POST",
+              headers: insertHeaders,
+              body: JSON.stringify(usuarioBody),
+            });
+          }
+        }
+      }
 
       if (!res.ok) {
         const errText = await res.text();
@@ -419,6 +457,49 @@ export default function AdminPanel({ user, token }: AdminPanelProps) {
     }
   };
 
+  const handleChangeRegion = async (
+    targetUser: Usuario,
+    newRegionValue: string
+  ) => {
+    try {
+      const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY;
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/usuarios?id=eq.${targetUser.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            apikey: serviceKey || SUPABASE_KEY,
+            Authorization: `Bearer ${serviceKey || token}`,
+            "Content-Type": "application/json",
+            Prefer: "return=representation",
+          },
+          body: JSON.stringify({ region: newRegionValue }),
+        }
+      );
+
+      if (!res.ok) {
+        toast({
+          title: "Error",
+          description: "No se pudo cambiar la región",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Región actualizada",
+        description: `${targetUser.nombre} ahora está asignado a ${getRegionLabel(newRegionValue)}`,
+      });
+      fetchUsuarios();
+    } catch {
+      toast({
+        title: "Error",
+        description: "Error de conexión",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleChangeRole = async (
     targetUser: Usuario,
     newRole: "tecnico" | "supervisor" | "admin"
@@ -502,9 +583,33 @@ export default function AdminPanel({ user, token }: AdminPanelProps) {
         return;
       }
 
+      // Mark user as must change password on next login (skip for self-change)
+      if (resetPasswordUser.id !== user.id) {
+        const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY;
+        try {
+          await fetch(
+            `${SUPABASE_URL}/rest/v1/usuarios?id=eq.${resetPasswordUser.id}`,
+            {
+              method: "PATCH",
+              headers: {
+                apikey: serviceKey || SUPABASE_KEY,
+                Authorization: `Bearer ${serviceKey || token}`,
+                "Content-Type": "application/json",
+                Prefer: "return=minimal",
+              },
+              body: JSON.stringify({ debe_cambiar_password: true }),
+            }
+          );
+        } catch {
+          // Column may not exist yet - skip silently
+        }
+      }
+
       toast({
         title: "Contraseña actualizada",
-        description: `La contraseña de ${resetPasswordUser.nombre} ha sido cambiada exitosamente`,
+        description: resetPasswordUser.id === user.id
+          ? "Tu contraseña ha sido cambiada exitosamente."
+          : `La contraseña de ${resetPasswordUser.nombre} ha sido cambiada. El usuario deberá cambiarla en su próximo ingreso.`,
       });
       setResetPasswordUser(null);
       setNewPasswordValue("");
@@ -535,13 +640,15 @@ export default function AdminPanel({ user, token }: AdminPanelProps) {
             Administración de Usuarios
           </h2>
         </div>
-        <Button
-          onClick={() => setShowCreateDialog(true)}
-          className="gap-2 bg-blue-600 hover:bg-blue-700"
-        >
-          <UserPlus className="w-4 h-4" />
-          Nuevo Usuario
-        </Button>
+        {isSuperAdmin && (
+          <Button
+            onClick={() => setShowCreateDialog(true)}
+            className="gap-2 bg-blue-600 hover:bg-blue-700"
+          >
+            <UserPlus className="w-4 h-4" />
+            Nuevo Usuario
+          </Button>
+        )}
       </div>
 
       {/* Empresa filter for superadmin */}
@@ -642,6 +749,11 @@ export default function AdminPanel({ user, token }: AdminPanelProps) {
                         {getEmpresaName(u.empresa_id)}
                       </p>
                     )}
+                    {u.region && !(isSuperAdmin || user.rol === "admin") && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        📍 {getRegionLabel(u.region)}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -675,7 +787,25 @@ export default function AdminPanel({ user, token }: AdminPanelProps) {
                     </Select>
                   )}
 
-                  {u.id !== user.id && u.rol !== "superadmin" && isSuperAdmin && (
+                  {(isSuperAdmin || user.rol === "admin") && u.rol !== "superadmin" && (
+                    <Select
+                      value={u.region || "santiago"}
+                      onValueChange={(v) => handleChangeRegion(u, v)}
+                    >
+                      <SelectTrigger className="w-[140px] h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {REGIONES.map((r) => (
+                          <SelectItem key={r.value} value={r.value}>
+                            📍 {r.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+
+                  {(isSuperAdmin || (user.rol === "admin" && u.id !== user.id && u.rol !== "superadmin")) && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -684,7 +814,7 @@ export default function AdminPanel({ user, token }: AdminPanelProps) {
                         setNewPasswordValue("");
                       }}
                       className="text-amber-500 hover:text-amber-700 hover:bg-amber-50 h-8 w-8 p-0"
-                      title="Resetear contraseña"
+                      title="Cambiar contraseña"
                     >
                       <KeyRound className="w-4 h-4" />
                     </Button>
@@ -717,10 +847,13 @@ export default function AdminPanel({ user, token }: AdminPanelProps) {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <KeyRound className="w-5 h-5 text-amber-500" /> Resetear Contraseña
+              <KeyRound className="w-5 h-5 text-amber-500" /> Cambiar Contraseña
             </DialogTitle>
             <DialogDescription>
-              Ingresa la nueva contraseña para <strong>{resetPasswordUser?.nombre}</strong> ({resetPasswordUser?.email})
+              {resetPasswordUser?.id === user.id
+                ? "Ingresa tu nueva contraseña"
+                : <>Ingresa la nueva contraseña para <strong>{resetPasswordUser?.nombre}</strong> ({resetPasswordUser?.email})</>
+              }
             </DialogDescription>
           </DialogHeader>
 
@@ -839,6 +972,28 @@ export default function AdminPanel({ user, token }: AdminPanelProps) {
                 </Select>
               </div>
             )}
+
+            <div className="space-y-1.5">
+              <Label>Región *</Label>
+              <Select
+                value={newRegion}
+                onValueChange={setNewRegion}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar región" />
+                </SelectTrigger>
+                <SelectContent>
+                  {REGIONES.map((r) => (
+                    <SelectItem key={r.value} value={r.value}>
+                      {r.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Determina qué checklists y OTs puede ver el usuario.
+              </p>
+            </div>
 
             <div className="space-y-1.5">
               <Label>Rol</Label>

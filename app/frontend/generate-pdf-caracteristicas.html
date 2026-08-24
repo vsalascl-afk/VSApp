@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>VSApp - Presentación Comité Financiero</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #1a1a2e;
+            line-height: 1.6;
+            background: #fff;
+        }
+
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 25mm 20mm;
+            page-break-after: always;
+            position: relative;
+        }
+
+        .page:last-child {
+            page-break-after: avoid;
+        }
+
+        /* Cover Page */
+        .cover {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            color: white;
+            padding: 40mm 20mm;
+        }
+
+        .cover-logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3);
+        }
+
+        .cover h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .cover .subtitle {
+            font-size: 18px;
+            color: #a0a0c0;
+            margin-bottom: 50px;
+            font-weight: 300;
+        }
+
+        .cover .doc-type {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: #667eea;
+            border: 1px solid #667eea;
+            padding: 8px 24px;
+            border-radius: 30px;
+            margin-bottom: 20px;
+        }
+
+        .cover .date {
+            font-size: 14px;
+            color: #666;
+            margin-top: 40px;
+        }
+
+        .cover .confidential {
+            position: absolute;
+            bottom: 30mm;
+            font-size: 11px;
+            color: #555;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Content Pages */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+        }
+
+        .header-brand {
+            font-size: 14px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .header-page {
+            font-size: 11px;
+            color: #888;
+        }
+
+        h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #302b63;
+            margin-top: 18px;
+            margin-bottom: 10px;
+        }
+
+        h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #444;
+            margin-top: 12px;
+            margin-bottom: 6px;
+        }
+
+        p {
+            font-size: 12px;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        ul li {
+            font-size: 12px;
+            padding: 4px 0 4px 20px;
+            position: relative;
+            color: #333;
+        }
+
+        ul li::before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 15px 0;
+        }
+
+        .feature-card {
+            background: #f8f9ff;
+            border: 1px solid #e8e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            border-left: 3px solid #667eea;
+        }
+
+        .feature-card h4 {
+            margin-top: 0;
+            font-size: 13px;
+            color: #302b63;
+        }
+
+        .feature-card p {
+            font-size: 11px;
+            margin-bottom: 0;
+            color: #555;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 11px;
+        }
+
+        table th {
+            background: #302b63;
+            color: white;
+            padding: 8px 10px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        table td {
+            padding: 7px 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        table tr:nth-child(even) {
+            background: #f8f9ff;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #f8f9ff, #eef0ff);
+            border: 1px solid #d0d5f0;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .highlight-box h4 {
+            color: #302b63;
+            margin-top: 0;
+        }
+
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 15px 0;
+        }
+
+        .metric-card {
+            text-align: center;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 10px;
+            padding: 15px 10px;
+        }
+
+        .metric-card .number {
+            font-size: 28px;
+            font-weight: 800;
+        }
+
+        .metric-card .label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.9;
+        }
+
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .tech-item {
+            background: #f0f0f8;
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .section-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-right: 8px;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 15mm;
+            left: 20mm;
+            right: 20mm;
+            text-align: center;
+            font-size: 9px;
+            color: #999;
+            border-top: 1px solid #eee;
+            padding-top: 8px;
+        }
+
+        @media print {
+            body { background: white; }
+            .page { margin: 0; box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- PORTADA -->
+<div class="page cover">
+    <div class="doc-type">Documento de Valoración Tecnológica</div>
+    <div class="cover-logo">EP</div>
+    <h1>VSApp</h1>
+    <p class="subtitle">Plataforma Integral de Gestión de Mantenimiento<br>y Órdenes de Trabajo</p>
+    <p class="date">Julio 2026 | Versión 3.2</p>
+    <p class="confidential">Confidencial — Comité Financiero</p>
+</div>
+
+<!-- PÁGINA 2: RESUMEN EJECUTIVO -->
+<div class="page">
+    <div class="header">
+        <span class="header-brand">VSApp</span>
+        <span class="header-page">2 / 7</span>
+    </div>
+    
+    <h2>1. Resumen Ejecutivo</h2>
+    
+    <p><strong>VSApp</strong> es una plataforma SaaS (Software as a Service) de gestión integral de mantenimiento y operaciones técnicas, diseñada para empresas de servicios de ingeniería, facility management y mantenimiento industrial.</p>
+    
+    <div class="highlight-box">
+        <h4>Propuesta de Valor</h4>
+        <p>Digitalización completa del ciclo de mantenimiento: desde la creación de órdenes de trabajo hasta la generación de informes ejecutivos con inteligencia artificial, eliminando el papel y reduciendo tiempos operativos en un 60-70%.</p>
+    </div>
+
+    <div class="metrics-row">
+        <div class="metric-card">
+            <div class="number">10+</div>
+            <div class="label">Módulos<br>Funcionales</div>
+        </div>
+        <div class="metric-card">
+            <div class="number">4</div>
+            <div class="label">Roles de<br>Usuario</div>
+        </div>
+        <div class="metric-card">
+            <div class="number">∞</div>
+            <div class="label">Empresas<br>Multi-tenant</div>
+        </div>
+    </div>
+
+    <h3>Modelo de Negocio</h3>
+    <table>
+        <tr>
+            <th>Aspecto</th>
+            <th>Detalle</th>
+        </tr>
+        <tr>
+            <td><strong>Tipo</strong></td>
+            <td>SaaS Multi-tenant con licenciamiento modular</td>
+        </tr>
+        <tr>
+            <td><strong>Monetización</strong></td>
+            <td>Suscripción mensual/anual por empresa + módulos adicionales</td>
+        </tr>
+        <tr>
+            <td><strong>Mercado objetivo</strong></td>
+            <td>Empresas de mantenimiento, facility management, servicios industriales</td>
+        </tr>
+        <tr>
+            <td><strong>Escalabilidad</strong></td>
+            <td>Arquitectura cloud-native, sin límite de empresas o usuarios</td>
+        </tr>
+        <tr>
+            <td><strong>Diferenciador</strong></td>
+            <td>IA integrada, modo offline, PWA, licenciamiento granular por módulo</td>
+        </tr>
+    </table>
+
+    <div class="footer">VSApp — Documento Confidencial — Comité Financiero — Julio 2026</div>
+</div>
+
+<!-- PÁGINA 3: MÓDULOS PRINCIPALES -->
+<div class="page">
+    <div class="header">
+        <span class="header-brand">VSApp</span>
+        <span class="header-page">3 / 7</span>
+    </div>
+    
+    <h2>2. Módulos Funcionales</h2>
+
+    <h3><span class="section-number">1</span>Gestión de Órdenes de Trabajo (OT)</h3>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h4>Creación y Asignación</h4>
+            <p>Crear OTs con prioridad, descripción, cliente y asignación de técnico responsable</p>
+        </div>
+        <div class="feature-card">
+            <h4>Seguimiento en Tiempo Real</h4>
+            <p>Estados: pendiente, en progreso, completada. Reasignación dinámica de técnicos</p>
+        </div>
+        <div class="feature-card">
+            <h4>Evidencia y Firmas</h4>
+            <p>Fotografías adjuntas y firma digital de técnico, supervisor y cliente</p>
+        </div>
+        <div class="feature-card">
+            <h4>Exportación PDF</h4>
+            <p>Generación automática de documentos PDF con logo corporativo</p>
+        </div>
+    </div>
+
+    <h3><span class="section-number">2</span>Checklists de Mantenimiento</h3>
+    <table>
+        <tr>
+            <th>Tipo de Checklist</th>
+            <th>Secciones</th>
+            <th>Uso</th>
+        </tr>
+        <tr>
+            <td><strong>Mantención BMS</strong></td>
+            <td>11 secciones técnicas</td>
+            <td>Mantenimiento preventivo de sistemas BMS</td>
+        </tr>
+        <tr>
+            <td><strong>Operación BMS</strong></td>
+            <td>12 especialidades</td>
+            <td>Rondas de operación diarias con registro de alarmas</td>
+        </tr>
+        <tr>
+            <td><strong>Grupo Electrógeno</strong></td>
+            <td>8 secciones técnicas</td>
+            <td>Mantenimiento de generadores según pauta estándar</td>
+        </tr>
+    </table>
+    
+    <p><strong>Funcionalidades comunes:</strong> Número correlativo automático (MTO-001, OP-001, GE-001), historial con búsqueda, edición con trazabilidad de cambios, guardado de borradores, campos OK/OBS/N/A con evidencia obligatoria en observaciones.</p>
+
+    <h3><span class="section-number">3</span>Programación de Mantenimiento Preventivo</h3>
+    <ul>
+        <li>Calendario de mantenciones programadas por equipo y frecuencia</li>
+        <li>Alertas automáticas escalonadas: 7 días, 3 días, día mismo, vencida</li>
+        <li>Notificaciones in-app (campana) y push del navegador</li>
+        <li>Prevención de incumplimientos y multas contractuales</li>
+    </ul>
+
+    <div class="footer">VSApp — Documento Confidencial — Comité Financiero — Julio 2026</div>
+</div>
+
+<!-- PÁGINA 4: MÓDULOS AVANZADOS -->
+<div class="page">
+    <div class="header">
+        <span class="header-brand">VSApp</span>
+        <span class="header-page">4 / 7</span>
+    </div>
+    
+    <h2>3. Módulos Avanzados (Diferenciadores)</h2>
+
+    <h3><span class="section-number">4</span>QR Equipos — Trazabilidad de Activos</h3>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h4>Catálogo de Equipos</h4>
+            <p>Registro completo con datos técnicos, ubicación, marca, modelo y estado</p>
+        </div>
+        <div class="feature-card">
+            <h4>Códigos QR</h4>
+            <p>Generación automática de QR por equipo, escaneo con cámara del celular</p>
+        </div>
+        <div class="feature-card">
+            <h4>Historial por Equipo</h4>
+            <p>Trazabilidad completa de todas las intervenciones realizadas</p>
+        </div>
+        <div class="feature-card">
+            <h4>Acceso Rápido</h4>
+            <p>Escanear QR → ver ficha técnica + historial inmediatamente</p>
+        </div>
+    </div>
+
+    <h3><span class="section-number">5</span>Reportabilidad e Inteligencia Artificial</h3>
+    
+    <h4>5.1 Informes Ejecutivos con IA (GPT-4)</h4>
+    <ul>
+        <li>Generación automática de informes narrativos a partir de datos de checklists</li>
+        <li>Informes individuales por checklist o consolidados por período</li>
+        <li>Análisis de tendencias, recomendaciones y plan de acción generados por IA</li>
+        <li>Exportación a PDF con formato profesional</li>
+    </ul>
+
+    <h4>5.2 Reporte Excel Avanzado</h4>
+    <ul>
+        <li>Exportación multi-hoja: Resumen Ejecutivo, Checklists, Hallazgos, Recursos, Tendencias, Plan de Acción</li>
+        <li>Filtros temporales: día, semana, mes, año, rango personalizado</li>
+        <li>Datos estructurados listos para análisis financiero y operacional</li>
+    </ul>
+
+    <h3><span class="section-number">6</span>Dashboard Ejecutivo</h3>
+    <ul>
+        <li>KPIs en tiempo real: OTs pendientes, completadas, en progreso</li>
+        <li>Gráficos estadísticos con tendencias y comparativas</li>
+        <li>Vista consolidada por empresa para gerencia</li>
+        <li>Indicadores de cumplimiento de mantenimiento preventivo</li>
+    </ul>
+
+    <h3><span class="section-number">7</span>Administración Multi-Empresa</h3>
+    <ul>
+        <li>Arquitectura multi-tenant: aislamiento total de datos entre empresas</li>
+        <li>Branding personalizado por empresa (colores, logo)</li>
+        <li>Licenciamiento modular: activar/desactivar módulos por empresa</li>
+        <li>Gestión de usuarios con 4 niveles de rol</li>
+        <li>Asignación de regiones geográficas a técnicos</li>
+    </ul>
+
+    <div class="footer">VSApp — Documento Confidencial — Comité Financiero — Julio 2026</div>
+</div>
+
+<!-- PÁGINA 5: ARQUITECTURA TÉCNICA -->
+<div class="page">
+    <div class="header">
+        <span class="header-brand">VSApp</span>
+        <span class="header-page">5 / 7</span>
+    </div>
+    
+    <h2>4. Arquitectura Técnica</h2>
+
+    <h3>Stack Tecnológico</h3>
+    <div class="tech-stack">
+        <div class="tech-item">React 18<br><small>Frontend</small></div>
+        <div class="tech-item">TypeScript<br><small>Tipado seguro</small></div>
+        <div class="tech-item">Tailwind CSS<br><small>Diseño</small></div>
+        <div class="tech-item">Supabase<br><small>Backend/DB</small></div>
+        <div class="tech-item">PostgreSQL<br><small>Base de datos</small></div>
+        <div class="tech-item">OpenAI GPT-4<br><small>IA</small></div>
+        <div class="tech-item">Vercel<br><small>Hosting CDN</small></div>
+        <div class="tech-item">PWA<br><small>App móvil</small></div>
+        <div class="tech-item">IndexedDB<br><small>Offline</small></div>
+    </div>
+
+    <h3>Características Técnicas Clave</h3>
+    <table>
+        <tr>
+            <th>Característica</th>
+            <th>Beneficio</th>
+            <th>Impacto</th>
+        </tr>
+        <tr>
+            <td><strong>PWA (Progressive Web App)</strong></td>
+            <td>Funciona como app nativa sin publicar en stores</td>
+            <td>Ahorro en desarrollo nativo iOS/Android</td>
+        </tr>
+        <tr>
+            <td><strong>Modo Offline</strong></td>
+            <td>Trabajo sin conexión con sync automático</td>
+            <td>Productividad en terreno sin cobertura</td>
+        </tr>
+        <tr>
+            <td><strong>Multi-tenant</strong></td>
+            <td>Una instancia sirve múltiples empresas</td>
+            <td>Reducción de costos operativos</td>
+        </tr>
+        <tr>
+            <td><strong>Row Level Security</strong></td>
+            <td>Aislamiento de datos a nivel de BD</td>
+            <td>Seguridad enterprise-grade</td>
+        </tr>
+        <tr>
+            <td><strong>CDN Global (Vercel)</strong></td>
+            <td>Carga rápida desde cualquier ubicación</td>
+            <td>UX superior, baja latencia</td>
+        </tr>
+        <tr>
+            <td><strong>Responsive Design</strong></td>
+            <td>PC, Tablet, Smartphone</td>
+            <td>Un solo desarrollo, todos los dispositivos</td>
+        </tr>
+        <tr>
+            <td><strong>Backups automáticos</strong></td>
+            <td>Protección de datos continua</td>
+            <td>Continuidad del negocio</td>
+        </tr>
+    </table>
+
+    <h3>Seguridad</h3>
+    <div class="highlight-box">
+        <ul>
+            <li><strong>Autenticación</strong>: Sistema robusto con Supabase Auth (JWT, refresh tokens)</li>
+            <li><strong>Autorización</strong>: 4 niveles de rol con permisos granulares</li>
+            <li><strong>Encriptación</strong>: HTTPS/TLS en tránsito, encriptación en reposo</li>
+            <li><strong>Aislamiento</strong>: Row Level Security — cada empresa accede solo a sus datos</li>
+            <li><strong>Auditoría</strong>: Historial de modificaciones con usuario, fecha y descripción</li>
+        </ul>
+    </div>
+
+    <div class="footer">VSApp — Documento Confidencial — Comité Financiero — Julio 2026</div>
+</div>
+
+<!-- PÁGINA 6: ROLES Y LICENCIAMIENTO -->
+<div class="page">
+    <div class="header">
+        <span class="header-brand">VSApp</span>
+        <span class="header-page">6 / 7</span>
+    </div>
+    
+    <h2>5. Roles, Permisos y Licenciamiento</h2>
+
+    <h3>Matriz de Roles y Permisos</h3>
+    <table>
+        <tr>
+            <th>Funcionalidad</th>
+            <th>Superadmin</th>
+            <th>Admin</th>
+            <th>Supervisor</th>
+            <th>Técnico</th>
+        </tr>
+        <tr>
+            <td>Gestión de empresas</td>
+            <td>✅</td>
+            <td>❌</td>
+            <td>❌</td>
+            <td>❌</td>
+        </tr>
+        <tr>
+            <td>Activar/desactivar módulos</td>
+            <td>✅</td>
+            <td>❌</td>
+            <td>❌</td>
+            <td>❌</td>
+        </tr>
+        <tr>
+            <td>Gestión de usuarios</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td>❌</td>
+            <td>❌</td>
+        </tr>
+        <tr>
+            <td>Crear OTs</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td>❌</td>
+        </tr>
+        <tr>
+            <td>Reasignar técnicos</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td>❌</td>
+        </tr>
+        <tr>
+            <td>Ejecutar checklists</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td>✅</td>
+        </tr>
+        <tr>
+            <td>Ver todos los checklists</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td>Solo propios</td>
+        </tr>
+        <tr>
+            <td>Informes IA</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td>❌</td>
+        </tr>
+        <tr>
+            <td>Dashboard ejecutivo</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td>❌</td>
+        </tr>
+    </table>
+
+    <h3>Modelo de Licenciamiento Modular</h3>
+    <p>Cada módulo puede activarse o desactivarse independientemente por empresa, permitiendo planes escalonados:</p>
+    
+    <table>
+        <tr>
+            <th>Módulo</th>
+            <th>Descripción</th>
+            <th>Licencia</th>
+        </tr>
+        <tr>
+            <td><strong>Core (OT + Dashboard)</strong></td>
+            <td>Órdenes de trabajo, dashboard, admin</td>
+            <td>Base (incluido)</td>
+        </tr>
+        <tr>
+            <td><strong>Checklists BMS</strong></td>
+            <td>Mantención + Operación BMS</td>
+            <td>Módulo adicional</td>
+        </tr>
+        <tr>
+            <td><strong>Grupo Electrógeno</strong></td>
+            <td>Checklist generadores</td>
+            <td>Módulo adicional</td>
+        </tr>
+        <tr>
+            <td><strong>QR Equipos</strong></td>
+            <td>Catálogo + trazabilidad QR</td>
+            <td>Módulo adicional</td>
+        </tr>
+        <tr>
+            <td><strong>Reportabilidad</strong></td>
+            <td>Informes IA + Excel avanzado</td>
+            <td>Módulo premium</td>
+        </tr>
+        <tr>
+            <td><strong>Programación</strong></td>
+            <td>Mantenimiento preventivo + alertas</td>
+            <td>Módulo adicional</td>
+        </tr>
+    </table>
+
+    <h3>Ventajas Competitivas</h3>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h4>🤖 IA Integrada</h4>
+            <p>Generación automática de informes ejecutivos con GPT-4, único en el mercado chileno de mantenimiento</p>
+        </div>
+        <div class="feature-card">
+            <h4>📴 Modo Offline</h4>
+            <p>Trabajo sin conexión en terreno, sincronización automática al reconectarse</p>
+        </div>
+        <div class="feature-card">
+            <h4>📱 PWA Multiplataforma</h4>
+            <p>Una sola app para PC, tablet y celular sin necesidad de stores</p>
+        </div>
+        <div class="feature-card">
+            <h4>🏢 Multi-tenant</h4>
+            <p>Escala infinita: una instancia sirve a todas las empresas clientes</p>
+        </div>
+    </div>
+
+    <div class="footer">VSApp — Documento Confidencial — Comité Financiero — Julio 2026</div>
+</div>
+
+<!-- PÁGINA 7: VALORACIÓN Y MÉTRICAS -->
+<div class="page">
+    <div class="header">
+        <span class="header-brand">VSApp</span>
+        <span class="header-page">7 / 7</span>
+    </div>
+    
+    <h2>6. Métricas para Valoración</h2>
+
+    <h3>Indicadores de Madurez del Producto</h3>
+    <table>
+        <tr>
+            <th>Indicador</th>
+            <th>Valor</th>
+        </tr>
+        <tr>
+            <td>Módulos funcionales desarrollados</td>
+            <td><strong>10+</strong></td>
+        </tr>
+        <tr>
+            <td>Componentes de código</td>
+            <td><strong>30+ archivos TypeScript/React</strong></td>
+        </tr>
+        <tr>
+            <td>Tipos de checklist</td>
+            <td><strong>3 (BMS Mantención, BMS Operación, Grupo Electrógeno)</strong></td>
+        </tr>
+        <tr>
+            <td>Especialidades técnicas cubiertas</td>
+            <td><strong>12 (Operación BMS)</strong></td>
+        </tr>
+        <tr>
+            <td>Roles de usuario</td>
+            <td><strong>4 niveles jerárquicos</strong></td>
+        </tr>
+        <tr>
+            <td>Capacidad multi-empresa</td>
+            <td><strong>Ilimitada</strong></td>
+        </tr>
+        <tr>
+            <td>Modo offline</td>
+            <td><strong>Completo (IndexedDB + Service Worker)</strong></td>
+        </tr>
+        <tr>
+            <td>Inteligencia Artificial</td>
+            <td><strong>GPT-4 para informes ejecutivos</strong></td>
+        </tr>
+        <tr>
+            <td>Exportaciones</td>
+            <td><strong>PDF + Excel multi-hoja</strong></td>
+        </tr>
+        <tr>
+            <td>Seguridad</td>
+            <td><strong>RLS + JWT + HTTPS + Encriptación</strong></td>
+        </tr>
+    </table>
+
+    <h3>Factores de Valoración</h3>
+    <div class="highlight-box">
+        <table>
+            <tr>
+                <th>Factor</th>
+                <th>Descripción</th>
+            </tr>
+            <tr>
+                <td><strong>Propiedad Intelectual</strong></td>
+                <td>Código fuente completo, arquitectura propietaria, lógica de negocio especializada</td>
+            </tr>
+            <tr>
+                <td><strong>Time-to-Market</strong></td>
+                <td>Producto funcional y desplegado, listo para comercialización inmediata</td>
+            </tr>
+            <tr>
+                <td><strong>Escalabilidad</strong></td>
+                <td>Arquitectura cloud-native, multi-tenant, sin límites técnicos de crecimiento</td>
+            </tr>
+            <tr>
+                <td><strong>Barrera de Entrada</strong></td>
+                <td>Conocimiento de dominio (BMS, generadores, mantenimiento industrial) difícil de replicar</td>
+            </tr>
+            <tr>
+                <td><strong>Recurrencia</strong></td>
+                <td>Modelo SaaS con ingresos recurrentes mensuales/anuales</td>
+            </tr>
+            <tr>
+                <td><strong>Diferenciación</strong></td>
+                <td>IA integrada + offline + multi-tenant + licenciamiento modular (combinación única)</td>
+            </tr>
+            <tr>
+                <td><strong>Costo de Reemplazo</strong></td>
+                <td>Desarrollo equivalente estimado: 8-12 meses con equipo de 3-4 desarrolladores</td>
+            </tr>
+        </table>
+    </div>
+
+    <h3>Costos Operativos Mensuales (Estimados)</h3>
+    <table>
+        <tr>
+            <th>Servicio</th>
+            <th>Costo Mensual (USD)</th>
+        </tr>
+        <tr>
+            <td>Supabase (DB + Auth + Storage)</td>
+            <td>$25 - $100</td>
+        </tr>
+        <tr>
+            <td>Vercel (Hosting CDN)</td>
+            <td>$0 - $20</td>
+        </tr>
+        <tr>
+            <td>OpenAI API (Informes IA)</td>
+            <td>$10 - $50 (según uso)</td>
+        </tr>
+        <tr>
+            <td><strong>Total infraestructura</strong></td>
+            <td><strong>$35 - $170/mes</strong></td>
+        </tr>
+    </table>
+
+    <p style="margin-top: 20px; font-size: 11px; color: #666; text-align: center;"><em>Los márgenes operativos son extremadamente altos dado el bajo costo de infraestructura cloud versus el valor entregado al cliente.</em></p>
+
+    <div class="footer">VSApp — Documento Confidencial — Comité Financiero — Julio 2026</div>
+</div>
+
+</body>
+</html>

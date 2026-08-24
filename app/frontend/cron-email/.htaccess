@@ -1,0 +1,4 @@
+# Bloquear acceso web a esta carpeta
+# Solo el cron job del servidor puede ejecutar estos scripts
+Order Deny,Allow
+Deny from all

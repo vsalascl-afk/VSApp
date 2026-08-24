@@ -4,14 +4,31 @@ import { SUPABASE_URL } from "@/lib/supabase";
 
 function formatDate(dateStr: string | undefined): string {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleString("es-CL", {
-    timeZone: "America/Santiago",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  try {
+    // Supabase may return timestamps without timezone suffix
+    // We store dates with toISOString() which is always UTC.
+    // If no timezone indicator is present, append 'Z' to ensure correct UTC interpretation.
+    let normalized = dateStr.trim();
+    const hasTimezone = normalized.endsWith("Z") || 
+      /[+-]\d{2}:\d{2}$/.test(normalized) || 
+      /[+-]\d{4}$/.test(normalized);
+    if (!hasTimezone) {
+      normalized = normalized.replace(" ", "T") + "Z";
+    }
+    const date = new Date(normalized);
+    if (isNaN(date.getTime())) return dateStr;
+    return date.toLocaleString("es-CL", {
+      timeZone: "America/Santiago",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  } catch {
+    return dateStr;
+  }
 }
 
 async function loadImageAsDataURL(url: string): Promise<string | null> {
@@ -35,7 +52,14 @@ function getImageFormat(dataURL: string): "JPEG" | "PNG" {
   return "JPEG";
 }
 
-export async function exportOTPDF(ot: OrdenTrabajo, empresaNombre?: string): Promise<void> {
+export interface MaterialPDF {
+  nombre: string;
+  cantidad: number;
+  unidad: string;
+  categoria?: string;
+}
+
+export async function exportOTPDF(ot: OrdenTrabajo, empresaNombre?: string, materiales?: MaterialPDF[]): Promise<void> {
   const doc = new jsPDF("p", "mm", "a4");
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
@@ -147,6 +171,56 @@ export async function exportOTPDF(ot: OrdenTrabajo, empresaNombre?: string): Pro
 
   y += 4;
 
+  // ===== MATERIALES ASIGNADOS =====
+  if (materiales && materiales.length > 0) {
+    checkPageBreak(20);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Materiales Utilizados", margin, y);
+    y += 6;
+
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 4;
+
+    // Table header
+    doc.setFillColor(226, 232, 240); // slate-200
+    doc.rect(margin, y - 4, contentWidth, 7, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(51, 65, 85);
+    doc.text("Material", margin + 2, y);
+    doc.text("Categoría", margin + 85, y);
+    doc.text("Cantidad", margin + 125, y);
+    doc.text("Unidad", margin + 150, y);
+    y += 5;
+
+    // Table rows
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(8);
+
+    for (const mat of materiales) {
+      checkPageBreak(8);
+      // Alternate row background
+      const rowIndex = materiales.indexOf(mat);
+      if (rowIndex % 2 === 1) {
+        doc.setFillColor(248, 250, 252); // slate-50
+        doc.rect(margin, y - 3.5, contentWidth, 6, "F");
+      }
+
+      const nombreLines = doc.splitTextToSize(mat.nombre, 80);
+      doc.text(nombreLines[0] || "—", margin + 2, y);
+      doc.text(mat.categoria || "—", margin + 85, y);
+      doc.text(String(mat.cantidad), margin + 125, y);
+      doc.text(mat.unidad || "—", margin + 150, y);
+      y += 6;
+    }
+
+    y += 4;
+  }
+
   // ===== PHOTOS =====
   if (ot.foto_url && ot.foto_url.length > 0) {
     checkPageBreak(20);
@@ -225,7 +299,7 @@ export async function exportOTPDF(ot: OrdenTrabajo, empresaNombre?: string): Pro
     doc.setTextColor(150, 150, 150);
     doc.setFont("helvetica", "normal");
     doc.text(
-      `${headerTitle} — Generado el ${new Date().toLocaleString("es-CL")} — Página ${i} de ${totalPages}`,
+      `${headerTitle} — Generado el ${new Date().toLocaleString("es-CL", { timeZone: "America/Santiago", hour12: false })} — Página ${i} de ${totalPages}`,
       pageWidth / 2,
       pageH - 8,
       { align: "center" }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Empresa, Usuario } from "@/lib/types";
-import { SUPABASE_URL, SUPABASE_KEY } from "@/lib/supabase";
+import { SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,12 +28,45 @@ import {
   Upload,
   Users,
   Palette,
+  ClipboardCheck,
 } from "lucide-react";
 
 interface EmpresaManagerProps {
   user: Usuario;
   token: string;
 }
+
+interface ModulesState {
+  ordenes: boolean;
+  checklists: boolean;
+  mantencion_bms: boolean;
+  operacion_bms: boolean;
+  qr_equipos: boolean;
+  inventario: boolean;
+  programacion: boolean;
+  cotizaciones: boolean;
+  reportes_excel: boolean;
+  reportes_ea: boolean;
+  reportes_email: boolean;
+  grupo_electrogeno: boolean;
+  portal_clientes: boolean;
+}
+
+const defaultModules: ModulesState = {
+  ordenes: true,
+  checklists: false,
+  mantencion_bms: false,
+  operacion_bms: false,
+  qr_equipos: false,
+  inventario: false,
+  programacion: false,
+  cotizaciones: false,
+  reportes_excel: false,
+  reportes_ea: false,
+  reportes_email: false,
+  grupo_electrogeno: false,
+  portal_clientes: false,
+};
 
 const defaultEmpresa: Omit<Empresa, "id" | "created_at"> = {
   nombre: "",
@@ -57,6 +90,20 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [userCounts, setUserCounts] = useState<Record<string, number>>({});
+  const [modules, setModules] = useState<ModulesState>(defaultModules);
+  const [empresaModules, setEmpresaModules] = useState<Record<string, boolean>>({});
+  const [empresaModulesReportExcel, setEmpresaModulesReportExcel] = useState<Record<string, boolean>>({});
+  const [empresaModulesReportEA, setEmpresaModulesReportEA] = useState<Record<string, boolean>>({});
+  const [empresaModulesReportEmail, setEmpresaModulesReportEmail] = useState<Record<string, boolean>>({});
+  const [empresaModulesQR, setEmpresaModulesQR] = useState<Record<string, boolean>>({});
+  const [empresaModulesGE, setEmpresaModulesGE] = useState<Record<string, boolean>>({});
+  const [empresaModulesInv, setEmpresaModulesInv] = useState<Record<string, boolean>>({});
+  const [empresaModulesProg, setEmpresaModulesProg] = useState<Record<string, boolean>>({});
+  const [empresaModulesOrdenes, setEmpresaModulesOrdenes] = useState<Record<string, boolean>>({});
+  const [empresaModulesCot, setEmpresaModulesCot] = useState<Record<string, boolean>>({});
+  const [empresaModulesPortal, setEmpresaModulesPortal] = useState<Record<string, boolean>>({});
+  const [empresaModulesMantBMS, setEmpresaModulesMantBMS] = useState<Record<string, boolean>>({});
+  const [empresaModulesOpBMS, setEmpresaModulesOpBMS] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -117,14 +164,95 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
     }
   }, [token]);
 
+  const fetchEmpresaModules = useCallback(async () => {
+    const authKey = SUPABASE_SERVICE_KEY || token;
+    const apiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/company_modules?module_name=in.(ordenes,checklists,mantencion_bms,operacion_bms,reportes_excel,reportes_ea,reportes_email,qr_equipos,grupo_electrogeno,inventario,programacion,cotizaciones,portal_clientes)&select=empresa_id,module_name,active`,
+        {
+          headers: {
+            apikey: apiKey,
+            Authorization: `Bearer ${authKey}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const map: Record<string, boolean> = {};
+        const mapReportExcel: Record<string, boolean> = {};
+        const mapReportEA: Record<string, boolean> = {};
+        const mapReportEmail: Record<string, boolean> = {};
+        const mapQR: Record<string, boolean> = {};
+        const mapGE: Record<string, boolean> = {};
+        const mapInv: Record<string, boolean> = {};
+        const mapProg: Record<string, boolean> = {};
+        const mapOrdenes: Record<string, boolean> = {};
+        const mapCot: Record<string, boolean> = {};
+        const mapPortal: Record<string, boolean> = {};
+        const mapMantBMS: Record<string, boolean> = {};
+        const mapOpBMS: Record<string, boolean> = {};
+        if (Array.isArray(data)) {
+          for (const row of data) {
+            if (row.module_name === "checklists") {
+              map[row.empresa_id] = row.active;
+            } else if (row.module_name === "reportes_excel") {
+              mapReportExcel[row.empresa_id] = row.active;
+            } else if (row.module_name === "reportes_ea") {
+              mapReportEA[row.empresa_id] = row.active;
+            } else if (row.module_name === "reportes_email") {
+              mapReportEmail[row.empresa_id] = row.active;
+            } else if (row.module_name === "qr_equipos") {
+              mapQR[row.empresa_id] = row.active;
+            } else if (row.module_name === "grupo_electrogeno") {
+              mapGE[row.empresa_id] = row.active;
+            } else if (row.module_name === "inventario") {
+              mapInv[row.empresa_id] = row.active;
+            } else if (row.module_name === "programacion") {
+              mapProg[row.empresa_id] = row.active;
+            } else if (row.module_name === "ordenes") {
+              mapOrdenes[row.empresa_id] = row.active;
+            } else if (row.module_name === "cotizaciones") {
+              mapCot[row.empresa_id] = row.active;
+            } else if (row.module_name === "portal_clientes") {
+              mapPortal[row.empresa_id] = row.active;
+            } else if (row.module_name === "mantencion_bms") {
+              mapMantBMS[row.empresa_id] = row.active;
+            } else if (row.module_name === "operacion_bms") {
+              mapOpBMS[row.empresa_id] = row.active;
+            }
+          }
+        }
+        setEmpresaModules(map);
+        setEmpresaModulesReportExcel(mapReportExcel);
+        setEmpresaModulesReportEA(mapReportEA);
+        setEmpresaModulesReportEmail(mapReportEmail);
+        setEmpresaModulesQR(mapQR);
+        setEmpresaModulesGE(mapGE);
+        setEmpresaModulesInv(mapInv);
+        setEmpresaModulesProg(mapProg);
+        setEmpresaModulesOrdenes(mapOrdenes);
+        setEmpresaModulesCot(mapCot);
+        setEmpresaModulesPortal(mapPortal);
+        setEmpresaModulesMantBMS(mapMantBMS);
+        setEmpresaModulesOpBMS(mapOpBMS);
+      }
+    } catch {
+      // silently fail
+    }
+  }, [token]);
+
   useEffect(() => {
     fetchEmpresas();
     fetchUserCounts();
-  }, [fetchEmpresas, fetchUserCounts]);
+    fetchEmpresaModules();
+  }, [fetchEmpresas, fetchUserCounts, fetchEmpresaModules]);
 
   const openCreateDialog = () => {
     setEditingEmpresa(null);
     setForm(defaultEmpresa);
+    setModules(defaultModules);
     setShowDialog(true);
   };
 
@@ -140,6 +268,21 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
       telefono: emp.telefono || "",
       email: emp.email || "",
       activa: emp.activa,
+    });
+    setModules({
+      ordenes: empresaModulesOrdenes[emp.id] ?? true,
+      checklists: empresaModules[emp.id] ?? false,
+      mantencion_bms: empresaModulesMantBMS[emp.id] ?? false,
+      operacion_bms: empresaModulesOpBMS[emp.id] ?? false,
+      qr_equipos: empresaModulesQR[emp.id] ?? false,
+      inventario: empresaModulesInv[emp.id] ?? false,
+      programacion: empresaModulesProg[emp.id] ?? false,
+      cotizaciones: empresaModulesCot[emp.id] ?? false,
+      reportes_excel: empresaModulesReportExcel[emp.id] ?? false,
+      reportes_ea: empresaModulesReportEA[emp.id] ?? false,
+      reportes_email: empresaModulesReportEmail[emp.id] ?? false,
+      grupo_electrogeno: empresaModulesGE[emp.id] ?? false,
+      portal_clientes: empresaModulesPortal[emp.id] ?? false,
     });
     setShowDialog(true);
   };
@@ -240,6 +383,144 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
         return;
       }
 
+      // Get the empresa ID for module assignment
+      let empresaId = editingEmpresa?.id;
+      if (!empresaId) {
+        // For new empresa, get the ID from response
+        try {
+          const resData = await res.json();
+          empresaId = Array.isArray(resData) ? resData[0]?.id : resData?.id;
+        } catch {
+          // If we can't parse, try fetching by name
+        }
+      }
+
+      // Save module assignments
+      if (empresaId) {
+        // Use service key if available for full RLS bypass
+        // If no service key, use user token with anon key
+        const serviceKey = SUPABASE_SERVICE_KEY;
+        const authKey = serviceKey || token;
+        const apiKey = serviceKey || SUPABASE_KEY;
+
+        // Debug: log what auth method we're using
+        console.log("[Modules] Auth method:", serviceKey ? "SERVICE_KEY" : "USER_TOKEN", "empresa:", empresaId);
+
+        // Helper to upsert a module using raw SQL via Supabase RPC
+        // This bypasses all PostgREST constraint issues
+        const upsertModule = async (moduleName: string, active: boolean) => {
+          try {
+            console.log(`[Modules] Saving ${moduleName} = ${active} for empresa ${empresaId}`);
+
+            // Use raw SQL via Supabase's pg endpoint to do a proper INSERT ON CONFLICT
+            // This works regardless of which constraints exist on the table
+            const sql = `
+              INSERT INTO company_modules (empresa_id, module_name, active)
+              VALUES ('${empresaId}', '${moduleName}', ${active === true})
+              ON CONFLICT (empresa_id, module_name) DO UPDATE SET active = ${active === true}
+            `;
+
+            // Try using the rpc endpoint with raw SQL
+            const rpcRes = await fetch(
+              `${SUPABASE_URL}/rest/v1/rpc/exec_sql`,
+              {
+                method: "POST",
+                headers: {
+                  apikey: apiKey,
+                  Authorization: `Bearer ${authKey}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ query: sql }),
+              }
+            );
+
+            if (rpcRes.ok) {
+              console.log(`[Modules] ${moduleName} saved via RPC`);
+              return;
+            }
+
+            // RPC function doesn't exist - use PostgREST approach
+            // First try: DELETE existing + INSERT new (atomic replacement)
+            console.log(`[Modules] RPC not available, using DELETE+INSERT for ${moduleName}`);
+
+            // Delete any existing record for this empresa+module
+            const deleteRes = await fetch(
+              `${SUPABASE_URL}/rest/v1/company_modules?empresa_id=eq.${empresaId}&module_name=eq.${moduleName}`,
+              {
+                method: "DELETE",
+                headers: {
+                  apikey: apiKey,
+                  Authorization: `Bearer ${authKey}`,
+                  Prefer: "return=representation",
+                },
+              }
+            );
+
+            console.log(`[Modules] DELETE ${moduleName} status: ${deleteRes.status}`);
+
+            // Now INSERT the new record
+            const insertRes = await fetch(
+              `${SUPABASE_URL}/rest/v1/company_modules`,
+              {
+                method: "POST",
+                headers: {
+                  apikey: apiKey,
+                  Authorization: `Bearer ${authKey}`,
+                  "Content-Type": "application/json",
+                  Prefer: "return=representation",
+                },
+                body: JSON.stringify({
+                  empresa_id: empresaId,
+                  module_name: moduleName,
+                  active: active === true,
+                }),
+              }
+            );
+
+            if (insertRes.ok) {
+              const data = await insertRes.json();
+              console.log(`[Modules] ${moduleName} saved via DELETE+INSERT:`, data);
+              return;
+            }
+
+            const errText = await insertRes.text();
+            console.error(`[Modules] INSERT ${moduleName} failed (${insertRes.status}):`, errText);
+
+            // If still failing, it's a constraint issue - provide exact SQL fix
+            if (insertRes.status === 409) {
+              console.error(`[Modules] CONSTRAINT ERROR: The table has incorrect unique constraints.`);
+              console.error(`[Modules] FIX: Run this SQL in Supabase SQL Editor:`);
+              console.error(`ALTER TABLE company_modules DROP CONSTRAINT IF EXISTS company_modules_module_name_key;`);
+              console.error(`ALTER TABLE company_modules DROP CONSTRAINT IF EXISTS company_modules_empresa_id_key;`);
+              console.error(`ALTER TABLE company_modules DROP CONSTRAINT IF EXISTS company_modules_empresa_module_unique;`);
+              console.error(`ALTER TABLE company_modules ADD CONSTRAINT company_modules_empresa_module_unique UNIQUE (empresa_id, module_name);`);
+              toast({
+                title: "Error de constraint en BD",
+                description: `La tabla tiene constraints incorrectos. Ejecute SETUP_MODULES.sql en Supabase SQL Editor.`,
+                variant: "destructive",
+              });
+            }
+          } catch (err) {
+            console.error(`[Modules] Error saving ${moduleName}:`, err);
+          }
+        };
+
+        // Save all modules sequentially for better error handling
+        await upsertModule("ordenes", modules.ordenes);
+        await upsertModule("checklists", modules.checklists);
+        await upsertModule("mantencion_bms", modules.mantencion_bms);
+        await upsertModule("operacion_bms", modules.operacion_bms);
+        await upsertModule("qr_equipos", modules.qr_equipos);
+        await upsertModule("inventario", modules.inventario);
+        await upsertModule("programacion", modules.programacion);
+        await upsertModule("cotizaciones", modules.cotizaciones);
+        await upsertModule("reportes_excel", modules.reportes_excel);
+        await upsertModule("reportes_ea", modules.reportes_ea);
+        await upsertModule("reportes_email", modules.reportes_email);
+        await upsertModule("grupo_electrogeno", modules.grupo_electrogeno);
+        await upsertModule("portal_clientes", modules.portal_clientes);
+      }
+
       toast({
         title: editingEmpresa ? "Empresa actualizada" : "Empresa creada",
         description: `${form.nombre} se ha ${editingEmpresa ? "actualizado" : "creado"} correctamente`,
@@ -248,6 +529,7 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
       setShowDialog(false);
       fetchEmpresas();
       fetchUserCounts();
+      fetchEmpresaModules();
     } catch {
       toast({
         title: "Error",
@@ -387,13 +669,69 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
                     </div>
                   )}
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-semibold text-slate-800 truncate">
                         {emp.nombre}
                       </p>
                       {!emp.activa && (
                         <Badge variant="outline" className="text-[10px] text-red-500 border-red-200">
                           Inactiva
+                        </Badge>
+                      )}
+                      {empresaModules[emp.id] && (
+                        <Badge variant="outline" className="text-[10px] text-blue-600 border-blue-200 bg-blue-50">
+                          <ClipboardCheck className="w-3 h-3 mr-0.5" />
+                          CL
+                        </Badge>
+                      )}
+                      {empresaModulesMantBMS[emp.id] && (
+                        <Badge variant="outline" className="text-[10px] text-sky-600 border-sky-200 bg-sky-50">
+                          Mant
+                        </Badge>
+                      )}
+                      {empresaModulesOpBMS[emp.id] && (
+                        <Badge variant="outline" className="text-[10px] text-violet-600 border-violet-200 bg-violet-50">
+                          Op
+                        </Badge>
+                      )}
+                      {empresaModulesReportExcel[emp.id] && (
+                        <Badge variant="outline" className="text-[10px] text-purple-600 border-purple-200 bg-purple-50">
+                          RExcel
+                        </Badge>
+                      )}
+                      {empresaModulesReportEA[emp.id] && (
+                        <Badge variant="outline" className="text-[10px] text-fuchsia-600 border-fuchsia-200 bg-fuchsia-50">
+                          REA
+                        </Badge>
+                      )}
+                      {empresaModulesReportEmail[emp.id] && (
+                        <Badge variant="outline" className="text-[10px] text-pink-600 border-pink-200 bg-pink-50">
+                          REmail
+                        </Badge>
+                      )}
+                      {empresaModulesQR[emp.id] && (
+                        <Badge variant="outline" className="text-[10px] text-green-600 border-green-200 bg-green-50">
+                          QR
+                        </Badge>
+                      )}
+                      {empresaModulesGE[emp.id] && (
+                        <Badge variant="outline" className="text-[10px] text-orange-600 border-orange-200 bg-orange-50">
+                          GE
+                        </Badge>
+                      )}
+                      {empresaModulesInv[emp.id] && (
+                        <Badge variant="outline" className="text-[10px] text-teal-600 border-teal-200 bg-teal-50">
+                          Inv
+                        </Badge>
+                      )}
+                      {empresaModulesProg[emp.id] && (
+                        <Badge variant="outline" className="text-[10px] text-indigo-600 border-indigo-200 bg-indigo-50">
+                          Prog
+                        </Badge>
+                      )}
+                      {empresaModulesPortal[emp.id] && (
+                        <Badge variant="outline" className="text-[10px] text-cyan-600 border-cyan-200 bg-cyan-50">
+                          Portal
                         </Badge>
                       )}
                     </div>
@@ -634,6 +972,329 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
                   >
                     Botón ejemplo
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modules */}
+            <div className="space-y-2 border rounded-lg p-3 bg-slate-50">
+              <Label className="flex items-center gap-1.5 text-sm font-semibold">
+                <ClipboardCheck className="w-4 h-4 text-blue-600" />
+                Módulos Contratados
+              </Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Active o suspenda módulos según el contrato del cliente
+              </p>
+              <div className="flex items-center justify-between py-2 px-2 bg-white rounded border">
+                <div>
+                  <p className="text-sm font-medium">Órdenes de Trabajo</p>
+                  <p className="text-xs text-muted-foreground">
+                    Gestión completa de órdenes de trabajo y seguimiento
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] ${
+                      modules.ordenes
+                        ? "text-green-600 border-green-300 bg-green-50"
+                        : "text-red-500 border-red-200 bg-red-50"
+                    }`}
+                  >
+                    {modules.ordenes ? "Activo" : "Suspendido"}
+                  </Badge>
+                  <Switch
+                    checked={modules.ordenes}
+                    onCheckedChange={(v) => setModules((m) => ({ ...m, ordenes: v }))}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-2 px-2 bg-white rounded border">
+                <div>
+                  <p className="text-sm font-medium">CheckList (Dashboard)</p>
+                  <p className="text-xs text-muted-foreground">
+                    Dashboard general de checklists y acceso al módulo
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] ${
+                      modules.checklists
+                        ? "text-green-600 border-green-300 bg-green-50"
+                        : "text-red-500 border-red-200 bg-red-50"
+                    }`}
+                  >
+                    {modules.checklists ? "Activo" : "Suspendido"}
+                  </Badge>
+                  <Switch
+                    checked={modules.checklists}
+                    onCheckedChange={(v) => setModules((m) => ({ ...m, checklists: v }))}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-2 px-2 bg-white rounded border">
+                <div>
+                  <p className="text-sm font-medium">Mantenimiento BMS</p>
+                  <p className="text-xs text-muted-foreground">
+                    Checklist de mantenimiento preventivo para sistemas BMS
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] ${
+                      modules.mantencion_bms
+                        ? "text-green-600 border-green-300 bg-green-50"
+                        : "text-red-500 border-red-200 bg-red-50"
+                    }`}
+                  >
+                    {modules.mantencion_bms ? "Activo" : "Suspendido"}
+                  </Badge>
+                  <Switch
+                    checked={modules.mantencion_bms}
+                    onCheckedChange={(v) => setModules((m) => ({ ...m, mantencion_bms: v }))}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-2 px-2 bg-white rounded border">
+                <div>
+                  <p className="text-sm font-medium">Operación BMS</p>
+                  <p className="text-xs text-muted-foreground">
+                    Rondas de operación BMS con 12 especialidades
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] ${
+                      modules.operacion_bms
+                        ? "text-green-600 border-green-300 bg-green-50"
+                        : "text-red-500 border-red-200 bg-red-50"
+                    }`}
+                  >
+                    {modules.operacion_bms ? "Activo" : "Suspendido"}
+                  </Badge>
+                  <Switch
+                    checked={modules.operacion_bms}
+                    onCheckedChange={(v) => setModules((m) => ({ ...m, operacion_bms: v }))}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-2 px-2 bg-white rounded border">
+                <div>
+                  <p className="text-sm font-medium">Reportes Excel</p>
+                  <p className="text-xs text-muted-foreground">
+                    Exportación de datos a planillas Excel
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] ${
+                      modules.reportes_excel
+                        ? "text-green-600 border-green-300 bg-green-50"
+                        : "text-red-500 border-red-200 bg-red-50"
+                    }`}
+                  >
+                    {modules.reportes_excel ? "Activo" : "Suspendido"}
+                  </Badge>
+                  <Switch
+                    checked={modules.reportes_excel}
+                    onCheckedChange={(v) => setModules((m) => ({ ...m, reportes_excel: v }))}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-2 px-2 bg-white rounded border">
+                <div>
+                  <p className="text-sm font-medium">Reportes EA</p>
+                  <p className="text-xs text-muted-foreground">
+                    Informes con inteligencia artificial para análisis de datos
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] ${
+                      modules.reportes_ea
+                        ? "text-green-600 border-green-300 bg-green-50"
+                        : "text-red-500 border-red-200 bg-red-50"
+                    }`}
+                  >
+                    {modules.reportes_ea ? "Activo" : "Suspendido"}
+                  </Badge>
+                  <Switch
+                    checked={modules.reportes_ea}
+                    onCheckedChange={(v) => setModules((m) => ({ ...m, reportes_ea: v }))}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-2 px-2 bg-white rounded border">
+                <div>
+                  <p className="text-sm font-medium">Reportes Email</p>
+                  <p className="text-xs text-muted-foreground">
+                    Envío automático de reportes por correo electrónico
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] ${
+                      modules.reportes_email
+                        ? "text-green-600 border-green-300 bg-green-50"
+                        : "text-red-500 border-red-200 bg-red-50"
+                    }`}
+                  >
+                    {modules.reportes_email ? "Activo" : "Suspendido"}
+                  </Badge>
+                  <Switch
+                    checked={modules.reportes_email}
+                    onCheckedChange={(v) => setModules((m) => ({ ...m, reportes_email: v }))}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-2 px-2 bg-white rounded border">
+                <div>
+                  <p className="text-sm font-medium">QR Equipos</p>
+                  <p className="text-xs text-muted-foreground">
+                    Catálogo de equipos con códigos QR para escaneo en terreno
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] ${
+                      modules.qr_equipos
+                        ? "text-green-600 border-green-300 bg-green-50"
+                        : "text-red-500 border-red-200 bg-red-50"
+                    }`}
+                  >
+                    {modules.qr_equipos ? "Activo" : "Suspendido"}
+                  </Badge>
+                  <Switch
+                    checked={modules.qr_equipos}
+                    onCheckedChange={(v) => setModules((m) => ({ ...m, qr_equipos: v }))}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-2 px-2 bg-white rounded border">
+                <div>
+                  <p className="text-sm font-medium">Grupo Electrógeno</p>
+                  <p className="text-xs text-muted-foreground">
+                    Checklist de inspección y mantenimiento de grupos electrógenos
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] ${
+                      modules.grupo_electrogeno
+                        ? "text-green-600 border-green-300 bg-green-50"
+                        : "text-red-500 border-red-200 bg-red-50"
+                    }`}
+                  >
+                    {modules.grupo_electrogeno ? "Activo" : "Suspendido"}
+                  </Badge>
+                  <Switch
+                    checked={modules.grupo_electrogeno}
+                    onCheckedChange={(v) => setModules((m) => ({ ...m, grupo_electrogeno: v }))}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-2 px-2 bg-white rounded border">
+                <div>
+                  <p className="text-sm font-medium">Inventario</p>
+                  <p className="text-xs text-muted-foreground">
+                    Catálogo de materiales, asignación a OTs y control de stock
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] ${
+                      modules.inventario
+                        ? "text-green-600 border-green-300 bg-green-50"
+                        : "text-red-500 border-red-200 bg-red-50"
+                    }`}
+                  >
+                    {modules.inventario ? "Activo" : "Suspendido"}
+                  </Badge>
+                  <Switch
+                    checked={modules.inventario}
+                    onCheckedChange={(v) => setModules((m) => ({ ...m, inventario: v }))}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-2 px-2 bg-white rounded border">
+                <div>
+                  <p className="text-sm font-medium">Programación</p>
+                  <p className="text-xs text-muted-foreground">
+                    Programación de mantenciones con generación automática de OTs
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] ${
+                      modules.programacion
+                        ? "text-green-600 border-green-300 bg-green-50"
+                        : "text-red-500 border-red-200 bg-red-50"
+                    }`}
+                  >
+                    {modules.programacion ? "Activo" : "Suspendido"}
+                  </Badge>
+                  <Switch
+                    checked={modules.programacion}
+                    onCheckedChange={(v) => setModules((m) => ({ ...m, programacion: v }))}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-2 px-2 bg-white rounded border">
+                <div>
+                  <p className="text-sm font-medium">Cotizaciones</p>
+                  <p className="text-xs text-muted-foreground">
+                    Generación de cotizaciones y presupuestos desde OTs
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] ${
+                      modules.cotizaciones
+                        ? "text-green-600 border-green-300 bg-green-50"
+                        : "text-red-500 border-red-200 bg-red-50"
+                    }`}
+                  >
+                    {modules.cotizaciones ? "Activo" : "Suspendido"}
+                  </Badge>
+                  <Switch
+                    checked={modules.cotizaciones}
+                    onCheckedChange={(v) => setModules((m) => ({ ...m, cotizaciones: v }))}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-2 px-2 bg-white rounded border">
+                <div>
+                  <p className="text-sm font-medium">Portal de Clientes</p>
+                  <p className="text-xs text-muted-foreground">
+                    Acceso externo para clientes: consulta de OTs y checklists en tiempo real
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] ${
+                      modules.portal_clientes
+                        ? "text-green-600 border-green-300 bg-green-50"
+                        : "text-red-500 border-red-200 bg-red-50"
+                    }`}
+                  >
+                    {modules.portal_clientes ? "Activo" : "Suspendido"}
+                  </Badge>
+                  <Switch
+                    checked={modules.portal_clientes}
+                    onCheckedChange={(v) => setModules((m) => ({ ...m, portal_clientes: v }))}
+                  />
                 </div>
               </div>
             </div>
