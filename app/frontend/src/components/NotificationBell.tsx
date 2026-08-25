@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useEmpresa } from "@/lib/empresaContext";
 import type { Usuario } from "@/lib/types";
 import { SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY } from "@/lib/supabase";
+import { getRegionTicketLabel } from "@/lib/regiones";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,7 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Bell, CheckCheck, AlertTriangle, Clock, Info, XCircle, Ticket } from "lucide-react";
+import { Bell, CheckCheck, AlertTriangle, Clock, Info, XCircle, Ticket, MapPin } from "lucide-react";
 
 interface Notification {
   id: string;
@@ -29,6 +30,14 @@ interface TicketNuevo {
   descripcion: string;
   estado: string;
   creado_en: string;
+}
+
+interface TicketAsignado {
+  id: string;
+  titulo: string;
+  region: string | null;
+  direccion: string | null;
+  actualizado_en: string;
 }
 
 function excerpt(text: string, max = 90) {
@@ -60,13 +69,15 @@ export default function NotificationBell({ user, token }: Props) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [ticketsNuevos, setTicketsNuevos] = useState<TicketNuevo[]>([]);
+  const [ticketsAsignados, setTicketsAsignados] = useState<TicketAsignado[]>([]);
   const [open, setOpen] = useState(false);
   const [pushPermission, setPushPermission] = useState<NotificationPermission>("default");
   const generatedRef = useRef(false);
+  const usuarioInternoIdRef = useRef<string | null>(null);
 
   const authKey = SUPABASE_SERVICE_KEY || token;
   const apiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
-  const totalBadgeCount = unreadCount + ticketsNuevos.length;
+  const totalBadgeCount = unreadCount + ticketsNuevos.length + ticketsAsignados.length;
 
   useEffect(() => {
     if (empresa) {
@@ -74,6 +85,7 @@ export default function NotificationBell({ user, token }: Props) {
       generateSLAAlerts();
       loadNotifications();
       loadTicketsNuevos();
+      loadTicketsAsignados();
     }
     // Check push permission
     if ("Notification" in window) {
@@ -88,6 +100,7 @@ export default function NotificationBell({ user, token }: Props) {
     const interval = setInterval(async () => {
       await loadNotifications();
       await loadTicketsNuevos();
+      await loadTicketsAsignados();
       // Si hay nuevas no leídas desde el último check, disparar push
       setUnreadCount((current) => {
         if (current > lastCheckRef.count) {
@@ -441,6 +454,57 @@ export default function NotificationBell({ user, token }: Props) {
     }
   }
 
+  // Resuelve el id interno (usuarios.id) del técnico a partir de su auth_id,
+  // y lo cachea en un ref para no repetir la consulta en cada polling.
+  async function resolveUsuarioInternoId(): Promise<string | null> {
+    if (usuarioInternoIdRef.current) return usuarioInternoIdRef.current;
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/usuarios?auth_id=eq.${user.auth_id}&select=id&limit=1`,
+        {
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data[0]) {
+          const id = String(data[0].id);
+          usuarioInternoIdRef.current = id;
+          return id;
+        }
+      }
+    } catch (err) {
+      console.error("Error resolving usuario interno id:", err);
+    }
+    return null;
+  }
+
+  async function loadTicketsAsignados() {
+    if (user.rol !== "tecnico") return;
+    try {
+      const internoId = await resolveUsuarioInternoId();
+      if (!internoId) return;
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/tickets?asignado_a=eq.${internoId}&estado=eq.asignado&select=id,titulo,region,direccion,actualizado_en&order=actualizado_en.desc`,
+        {
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (res.ok) {
+        const data: TicketAsignado[] = await res.json();
+        setTicketsAsignados(data || []);
+      }
+    } catch (err) {
+      console.error("Error loading tickets asignados:", err);
+    }
+  }
+
   async function markAsRead(id: string) {
     try {
       await fetch(
@@ -585,6 +649,50 @@ export default function NotificationBell({ user, token }: Props) {
               ))
             )}
           </div>
+
+          {/* Tickets asignados a ti (solo técnico) */}
+          {user.rol === "tecnico" && (
+            <div className="border-t">
+              <div className="px-3 py-2 bg-gray-50 flex items-center justify-between sticky top-0">
+                <h5 className="text-xs font-semibold text-gray-600">Tickets asignados a ti</h5>
+                {ticketsAsignados.length > 0 && (
+                  <span className="text-[10px] text-sky-500 font-semibold">{ticketsAsignados.length}</span>
+                )}
+              </div>
+              {ticketsAsignados.length === 0 ? (
+                <div className="p-6 text-center text-gray-400 text-sm">
+                  <Ticket className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                  Sin tickets asignados
+                </div>
+              ) : (
+                ticketsAsignados.map((t) => (
+                  <div
+                    key={t.id}
+                    className="p-3 border-b last:border-b-0 bg-sky-50 border-sky-100"
+                  >
+                    <div className="flex items-start gap-2">
+                      <div className="mt-0.5">
+                        <Ticket className="w-4 h-4 text-sky-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-gray-800">{t.titulo}</p>
+                        {(t.region || t.direccion) && (
+                          <p className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+                            <MapPin className="w-3 h-3 shrink-0 text-sky-500" />
+                            {[getRegionTicketLabel(t.region), t.direccion].filter(Boolean).join(" — ")}
+                          </p>
+                        )}
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          {new Date(t.actualizado_en).toLocaleDateString("es-CL")} ·{" "}
+                          {new Date(t.actualizado_en).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>

@@ -25,7 +25,11 @@ import { useToast } from "@/hooks/use-toast";
 interface CreateOTFormProps {
   user: Usuario;
   token: string;
-  onCreated: () => void;
+  onCreated: (createdOT?: { id: string; numero: string }) => void;
+  initialCliente?: string;
+  initialDescripcion?: string;
+  initialDireccion?: string;
+  defaultOpen?: boolean;
 }
 
 interface TecnicoOption {
@@ -39,12 +43,16 @@ export default function CreateOTForm({
   user,
   token,
   onCreated,
+  initialCliente,
+  initialDescripcion,
+  initialDireccion,
+  defaultOpen,
 }: CreateOTFormProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen ?? false);
   const [loading, setLoading] = useState(false);
-  const [cliente, setCliente] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [direccion, setDireccion] = useState("");
+  const [cliente, setCliente] = useState(initialCliente || "");
+  const [descripcion, setDescripcion] = useState(initialDescripcion || "");
+  const [direccion, setDireccion] = useState(initialDireccion || "");
   const [tipoServ, setTipoServ] = useState("");
   const [notas, setNotas] = useState("");
   const [firmaPor, setFirmaPor] = useState("");
@@ -195,6 +203,12 @@ export default function CreateOTForm({
         return;
       }
 
+      const created = await res.json().catch(() => null);
+      const createdOT =
+        Array.isArray(created) && created[0]
+          ? { id: String(created[0].id), numero: String(created[0].numero) }
+          : undefined;
+
       toast({ title: "Éxito", description: "OT creada correctamente en estado Pendiente" });
       // Reset form
       setCliente("");
@@ -207,7 +221,7 @@ export default function CreateOTForm({
       setTecnicoId(user.auth_id);
       setFiles([]);
       setOpen(false);
-      onCreated();
+      onCreated(createdOT);
     } catch {
       toast({
         title: "Error",

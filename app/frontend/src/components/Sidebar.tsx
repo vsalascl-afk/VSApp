@@ -19,6 +19,7 @@ import {
   FileSpreadsheet,
   FileText,
   Mail,
+  Ticket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEmpresa } from "@/lib/empresaContext";
@@ -39,7 +40,8 @@ type Section =
   | "programacion"
   | "inventario"
   | "cotizaciones"
-  | "portal_clientes";
+  | "portal_clientes"
+  | "tickets";
 
 interface SidebarProps {
   open: boolean;
@@ -233,6 +235,12 @@ export default function Sidebar({
           icon: <CalendarClock className="w-5 h-5" />,
           roles: ["admin", "superadmin", "supervisor"],
           licensed: "programacion",
+        },
+        {
+          id: "tickets",
+          label: "Tickets",
+          icon: <Ticket className="w-5 h-5" />,
+          roles: ["admin", "superadmin", "supervisor", "tecnico"],
         },
       ],
     },

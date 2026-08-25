@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { SUPABASE_URL, SUPABASE_KEY } from "@/lib/supabase";
 import type { OrdenTrabajo } from "@/lib/types";
+import { REGIONES_TICKET, getRegionTicketLabel } from "@/lib/regiones";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -85,37 +86,6 @@ interface PortalTicket {
   creado_en: string;
   region?: string | null;
   direccion?: string | null;
-}
-
-interface RegionOption {
-  value: string;
-  label: string;
-}
-
-// Values intencionalmente alineados con la columna `region` de la tabla `usuarios`
-// (arica, copiapo, valparaiso, santiago coinciden con esos registros existentes).
-const REGIONES_TICKET: RegionOption[] = [
-  { value: "arica", label: "Arica y Parinacota" },
-  { value: "tarapaca", label: "Tarapacá" },
-  { value: "antofagasta", label: "Antofagasta" },
-  { value: "copiapo", label: "Atacama" },
-  { value: "coquimbo", label: "Coquimbo" },
-  { value: "valparaiso", label: "Valparaíso" },
-  { value: "santiago", label: "Metropolitana de Santiago" },
-  { value: "ohiggins", label: "Libertador General Bernardo O'Higgins" },
-  { value: "maule", label: "Maule" },
-  { value: "nuble", label: "Ñuble" },
-  { value: "biobio", label: "Biobío" },
-  { value: "araucania", label: "La Araucanía" },
-  { value: "los_rios", label: "Los Ríos" },
-  { value: "los_lagos", label: "Los Lagos" },
-  { value: "aysen", label: "Aysén del General Carlos Ibáñez del Campo" },
-  { value: "magallanes", label: "Magallanes y de la Antártica Chilena" },
-];
-
-function getRegionTicketLabel(value: string | null | undefined): string {
-  if (!value) return "";
-  return REGIONES_TICKET.find((r) => r.value === value)?.label || value;
 }
 
 const estadoColors: Record<string, string> = {
