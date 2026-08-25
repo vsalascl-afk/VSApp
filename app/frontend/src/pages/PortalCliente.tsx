@@ -83,6 +83,39 @@ interface PortalTicket {
   estado: "nuevo" | "en_revision" | "convertido" | "descartado";
   ot_id: string | null;
   creado_en: string;
+  region?: string | null;
+  direccion?: string | null;
+}
+
+interface RegionOption {
+  value: string;
+  label: string;
+}
+
+// Values intencionalmente alineados con la columna `region` de la tabla `usuarios`
+// (arica, copiapo, valparaiso, santiago coinciden con esos registros existentes).
+const REGIONES_TICKET: RegionOption[] = [
+  { value: "arica", label: "Arica y Parinacota" },
+  { value: "tarapaca", label: "Tarapacá" },
+  { value: "antofagasta", label: "Antofagasta" },
+  { value: "copiapo", label: "Atacama" },
+  { value: "coquimbo", label: "Coquimbo" },
+  { value: "valparaiso", label: "Valparaíso" },
+  { value: "santiago", label: "Metropolitana de Santiago" },
+  { value: "ohiggins", label: "Libertador General Bernardo O'Higgins" },
+  { value: "maule", label: "Maule" },
+  { value: "nuble", label: "Ñuble" },
+  { value: "biobio", label: "Biobío" },
+  { value: "araucania", label: "La Araucanía" },
+  { value: "los_rios", label: "Los Ríos" },
+  { value: "los_lagos", label: "Los Lagos" },
+  { value: "aysen", label: "Aysén del General Carlos Ibáñez del Campo" },
+  { value: "magallanes", label: "Magallanes y de la Antártica Chilena" },
+];
+
+function getRegionTicketLabel(value: string | null | undefined): string {
+  if (!value) return "";
+  return REGIONES_TICKET.find((r) => r.value === value)?.label || value;
 }
 
 const estadoColors: Record<string, string> = {
@@ -134,6 +167,8 @@ export default function PortalCliente() {
   const [loadingTickets, setLoadingTickets] = useState(false);
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [ticketTitulo, setTicketTitulo] = useState("");
+  const [ticketRegion, setTicketRegion] = useState("");
+  const [ticketDireccion, setTicketDireccion] = useState("");
   const [ticketDescripcion, setTicketDescripcion] = useState("");
   const [submittingTicket, setSubmittingTicket] = useState(false);
 
@@ -402,10 +437,10 @@ export default function PortalCliente() {
 
   async function handleCrearTicket() {
     if (!token) return;
-    if (!ticketTitulo.trim() || !ticketDescripcion.trim()) {
+    if (!ticketTitulo.trim() || !ticketRegion || !ticketDescripcion.trim()) {
       toast({
         title: "Campos requeridos",
-        description: "Completa el título y la descripción del ticket.",
+        description: "Completa el título, la región y la descripción del ticket.",
         variant: "destructive",
       });
       return;
@@ -424,6 +459,8 @@ export default function PortalCliente() {
           p_token: token,
           p_titulo: ticketTitulo.trim(),
           p_descripcion: ticketDescripcion.trim(),
+          p_region: ticketRegion,
+          p_direccion: ticketDireccion.trim(),
         }),
       });
 
@@ -438,6 +475,8 @@ export default function PortalCliente() {
 
       toast({ title: "Ticket creado", description: "Tu solicitud fue enviada correctamente." });
       setTicketTitulo("");
+      setTicketRegion("");
+      setTicketDireccion("");
       setTicketDescripcion("");
       setTicketDialogOpen(false);
       await loadTickets();
@@ -953,6 +992,12 @@ export default function PortalCliente() {
                             <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">
                               {t.descripcion}
                             </p>
+                            {(t.region || t.direccion) && (
+                              <p className="flex items-center gap-1 text-xs text-gray-500 mt-1.5">
+                                <MapPin className="w-3 h-3 shrink-0" style={{ color: primaryColor }} />
+                                {[getRegionTicketLabel(t.region), t.direccion].filter(Boolean).join(" — ")}
+                              </p>
+                            )}
                           </div>
                           <Badge
                             className={`${ticketEstadoColors[t.estado]} text-white text-[10px] px-1.5 py-0 shrink-0`}
@@ -1001,6 +1046,30 @@ export default function PortalCliente() {
                   value={ticketTitulo}
                   onChange={(e) => setTicketTitulo(e.target.value)}
                   placeholder="Resumen breve del problema o solicitud"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="ticket-region">Región</Label>
+                <Select value={ticketRegion} onValueChange={setTicketRegion}>
+                  <SelectTrigger id="ticket-region">
+                    <SelectValue placeholder="Selecciona una región" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REGIONES_TICKET.map((r) => (
+                      <SelectItem key={r.value} value={r.value}>
+                        {r.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="ticket-direccion">Dirección (opcional)</Label>
+                <Input
+                  id="ticket-direccion"
+                  value={ticketDireccion}
+                  onChange={(e) => setTicketDireccion(e.target.value)}
+                  placeholder="Dirección relacionada con la solicitud"
                 />
               </div>
               <div className="space-y-1.5">
