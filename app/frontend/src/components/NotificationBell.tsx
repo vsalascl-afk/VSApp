@@ -9,7 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Bell, CheckCheck, AlertTriangle, Clock, Info, XCircle } from "lucide-react";
+import { Bell, CheckCheck, AlertTriangle, Clock, Info, XCircle, Ticket } from "lucide-react";
 
 interface Notification {
   id: string;
@@ -21,6 +21,19 @@ interface Notification {
   leida: boolean;
   fecha_alerta: string;
   created_at: string;
+}
+
+interface TicketNuevo {
+  id: string;
+  titulo: string;
+  descripcion: string;
+  estado: string;
+  creado_en: string;
+}
+
+function excerpt(text: string, max = 90) {
+  if (!text) return "";
+  return text.length > max ? `${text.slice(0, max).trim()}…` : text;
 }
 
 interface Props {
@@ -46,18 +59,21 @@ export default function NotificationBell({ user, token }: Props) {
   const { empresa } = useEmpresa();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [ticketsNuevos, setTicketsNuevos] = useState<TicketNuevo[]>([]);
   const [open, setOpen] = useState(false);
   const [pushPermission, setPushPermission] = useState<NotificationPermission>("default");
   const generatedRef = useRef(false);
 
   const authKey = SUPABASE_SERVICE_KEY || token;
   const apiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
+  const totalBadgeCount = unreadCount + ticketsNuevos.length;
 
   useEffect(() => {
     if (empresa) {
       generateNotifications();
       generateSLAAlerts();
       loadNotifications();
+      loadTicketsNuevos();
     }
     // Check push permission
     if ("Notification" in window) {
@@ -71,6 +87,7 @@ export default function NotificationBell({ user, token }: Props) {
     const lastCheckRef = { count: unreadCount };
     const interval = setInterval(async () => {
       await loadNotifications();
+      await loadTicketsNuevos();
       // Si hay nuevas no leídas desde el último check, disparar push
       setUnreadCount((current) => {
         if (current > lastCheckRef.count) {
@@ -404,6 +421,26 @@ export default function NotificationBell({ user, token }: Props) {
     }
   }
 
+  async function loadTicketsNuevos() {
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/tickets?estado=eq.nuevo&select=id,titulo,descripcion,estado,creado_en&order=creado_en.desc`,
+        {
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (res.ok) {
+        const data: TicketNuevo[] = await res.json();
+        setTicketsNuevos(data || []);
+      }
+    } catch (err) {
+      console.error("Error loading tickets:", err);
+    }
+  }
+
   async function markAsRead(id: string) {
     try {
       await fetch(
@@ -455,15 +492,15 @@ export default function NotificationBell({ user, token }: Props) {
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="w-5 h-5" />
-          {unreadCount > 0 && (
+          {totalBadgeCount > 0 && (
             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-              {unreadCount > 9 ? "9+" : unreadCount}
+              {totalBadgeCount > 9 ? "9+" : totalBadgeCount}
             </span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0 max-h-[400px] overflow-hidden" align="end">
-        <div className="p-3 border-b flex items-center justify-between">
+      <PopoverContent className="w-80 p-0 max-h-[480px] overflow-hidden flex flex-col" align="end">
+        <div className="p-3 border-b flex items-center justify-between shrink-0">
           <h4 className="font-semibold text-sm">Notificaciones</h4>
           <div className="flex items-center gap-2">
             {pushPermission !== "granted" && (
@@ -478,7 +515,7 @@ export default function NotificationBell({ user, token }: Props) {
             )}
           </div>
         </div>
-        <div className="overflow-y-auto max-h-[320px]">
+        <div className="overflow-y-auto flex-1">
           {notifications.length === 0 ? (
             <div className="p-6 text-center text-gray-400 text-sm">
               <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
@@ -510,6 +547,44 @@ export default function NotificationBell({ user, token }: Props) {
               </div>
             ))
           )}
+
+          {/* Tickets nuevos */}
+          <div className="border-t">
+            <div className="px-3 py-2 bg-gray-50 flex items-center justify-between sticky top-0">
+              <h5 className="text-xs font-semibold text-gray-600">Tickets nuevos</h5>
+              {ticketsNuevos.length > 0 && (
+                <span className="text-[10px] text-gray-400">{ticketsNuevos.length}</span>
+              )}
+            </div>
+            {ticketsNuevos.length === 0 ? (
+              <div className="p-6 text-center text-gray-400 text-sm">
+                <Ticket className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                Sin tickets nuevos
+              </div>
+            ) : (
+              ticketsNuevos.map((t) => (
+                <div
+                  key={t.id}
+                  className="p-3 border-b last:border-b-0 bg-purple-50 border-purple-100"
+                >
+                  <div className="flex items-start gap-2">
+                    <div className="mt-0.5">
+                      <Ticket className="w-4 h-4 text-purple-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-gray-800">{t.titulo}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                        {excerpt(t.descripcion)}
+                      </p>
+                      <p className="text-[10px] text-gray-400 mt-1">
+                        {new Date(t.creado_en).toLocaleDateString("es-CL")} · {new Date(t.creado_en).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </PopoverContent>
     </Popover>

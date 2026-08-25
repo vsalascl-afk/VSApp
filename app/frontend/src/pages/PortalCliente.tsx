@@ -6,6 +6,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -13,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import {
   Loader2,
   AlertTriangle,
@@ -28,6 +38,8 @@ import {
   Camera,
   FileText,
   Package,
+  Ticket as TicketIcon,
+  Plus,
 } from "lucide-react";
 
 interface PortalAccess {
@@ -35,8 +47,6 @@ interface PortalAccess {
   empresa_id: string;
   nombre_cliente: string;
   email_cliente: string;
-  activo: boolean;
-  fecha_expiracion: string | null;
 }
 
 interface EmpresaInfo {
@@ -66,6 +76,15 @@ interface MaterialAsignado {
   categoria: string;
 }
 
+interface PortalTicket {
+  id: string;
+  titulo: string;
+  descripcion: string;
+  estado: "nuevo" | "en_revision" | "convertido" | "descartado";
+  ot_id: string | null;
+  creado_en: string;
+}
+
 const estadoColors: Record<string, string> = {
   pendiente: "bg-amber-500",
   en_curso: "bg-sky-500",
@@ -80,8 +99,23 @@ const estadoLabels: Record<string, string> = {
   completada: "Completada",
 };
 
+const ticketEstadoColors: Record<string, string> = {
+  nuevo: "bg-sky-500",
+  en_revision: "bg-amber-500",
+  convertido: "bg-green-500",
+  descartado: "bg-gray-400",
+};
+
+const ticketEstadoLabels: Record<string, string> = {
+  nuevo: "Nuevo",
+  en_revision: "En Revisión",
+  convertido: "Convertido",
+  descartado: "Descartado",
+};
+
 export default function PortalCliente() {
   const { token } = useParams<{ token: string }>();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [portalAccess, setPortalAccess] = useState<PortalAccess | null>(null);
@@ -94,8 +128,14 @@ export default function PortalCliente() {
   const [checklists, setChecklists] = useState<ChecklistBMS[]>([]);
   const [materiales, setMateriales] = useState<MaterialAsignado[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
-  const [activeTab, setActiveTab] = useState<"ordenes" | "checklists">("ordenes");
+  const [activeTab, setActiveTab] = useState<"ordenes" | "checklists" | "tickets">("ordenes");
   const [checklistsModuleActive, setChecklistsModuleActive] = useState(false);
+  const [tickets, setTickets] = useState<PortalTicket[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
+  const [ticketTitulo, setTicketTitulo] = useState("");
+  const [ticketDescripcion, setTicketDescripcion] = useState("");
+  const [submittingTicket, setSubmittingTicket] = useState(false);
 
   // Validar token y obtener acceso
   useEffect(() => {
@@ -109,15 +149,17 @@ export default function PortalCliente() {
 
   async function validateToken(tkn: string) {
     try {
-      // Buscar acceso por token
+      // Buscar acceso por token vía RPC segura (RLS-safe)
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/portal_clientes?token=eq.${tkn}&select=*`,
+        `${SUPABASE_URL}/rest/v1/rpc/get_portal_access`,
         {
+          method: "POST",
           headers: {
             apikey: SUPABASE_KEY,
             Authorization: `Bearer ${SUPABASE_KEY}`,
             "Content-Type": "application/json",
           },
+          body: JSON.stringify({ p_token: tkn }),
         }
       );
 
@@ -136,20 +178,6 @@ export default function PortalCliente() {
 
       const access = data[0] as PortalAccess;
 
-      // Verificar si está activo
-      if (!access.activo) {
-        setError("Este acceso ha sido desactivado");
-        setLoading(false);
-        return;
-      }
-
-      // Verificar expiración
-      if (access.fecha_expiracion && new Date(access.fecha_expiracion) < new Date()) {
-        setError("Este enlace ha expirado");
-        setLoading(false);
-        return;
-      }
-
       setPortalAccess(access);
 
       // Obtener info de empresa
@@ -157,7 +185,7 @@ export default function PortalCliente() {
       // Verificar módulo checklists
       await checkModules(access.empresa_id);
       // Obtener OTs del cliente
-      await fetchOrdenes(access.empresa_id, access.nombre_cliente);
+      await fetchOrdenes(tkn);
 
       setLoading(false);
     } catch {
@@ -208,16 +236,18 @@ export default function PortalCliente() {
     }
   }
 
-  async function fetchOrdenes(empresaId: string, nombreCliente: string) {
+  async function fetchOrdenes(tkn: string) {
     try {
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/ordenes_trabajo?empresa_id=eq.${empresaId}&cliente=ilike.*${encodeURIComponent(nombreCliente)}*&order=fecha_inicio.desc`,
+        `${SUPABASE_URL}/rest/v1/rpc/get_portal_ots`,
         {
+          method: "POST",
           headers: {
             apikey: SUPABASE_KEY,
             Authorization: `Bearer ${SUPABASE_KEY}`,
             "Content-Type": "application/json",
           },
+          body: JSON.stringify({ p_token: tkn }),
         }
       );
       if (res.ok) {
@@ -338,6 +368,89 @@ export default function PortalCliente() {
       loadAllChecklists();
     }
   }, [activeTab, loadAllChecklists, checklistsModuleActive]);
+
+  // Cargar tickets del cliente
+  const loadTickets = useCallback(async () => {
+    if (!token) return;
+    setLoadingTickets(true);
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_portal_tickets`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ p_token: token }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTickets(data || []);
+      }
+    } catch {
+      setTickets([]);
+    } finally {
+      setLoadingTickets(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (activeTab === "tickets") {
+      loadTickets();
+    }
+  }, [activeTab, loadTickets]);
+
+  async function handleCrearTicket() {
+    if (!token) return;
+    if (!ticketTitulo.trim() || !ticketDescripcion.trim()) {
+      toast({
+        title: "Campos requeridos",
+        description: "Completa el título y la descripción del ticket.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSubmittingTicket(true);
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/crear_ticket_portal`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          p_token: token,
+          p_titulo: ticketTitulo.trim(),
+          p_descripcion: ticketDescripcion.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        toast({
+          title: "Error",
+          description: "No se pudo crear el ticket. Intenta nuevamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({ title: "Ticket creado", description: "Tu solicitud fue enviada correctamente." });
+      setTicketTitulo("");
+      setTicketDescripcion("");
+      setTicketDialogOpen(false);
+      await loadTickets();
+    } catch {
+      toast({
+        title: "Error de conexión",
+        description: "No se pudo enviar el ticket. Revisa tu conexión.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmittingTicket(false);
+    }
+  }
 
   const primaryColor = empresa?.color_primario || "#2563eb";
   const secondaryColor = empresa?.color_secundario || "#0f172a";
@@ -620,6 +733,18 @@ export default function PortalCliente() {
               Checklists
             </button>
           )}
+          <button
+            onClick={() => setActiveTab("tickets")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === "tickets"
+                ? "text-white shadow-md"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+            style={activeTab === "tickets" ? { backgroundColor: primaryColor } : undefined}
+          >
+            <TicketIcon className="w-4 h-4" />
+            Tickets
+          </button>
         </div>
 
         {/* Stats */}
@@ -785,6 +910,133 @@ export default function PortalCliente() {
             )}
           </div>
         )}
+
+        {/* Tab Tickets */}
+        {activeTab === "tickets" && (
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <Button
+                onClick={() => setTicketDialogOpen(true)}
+                className="gap-2 text-white"
+                style={{ backgroundColor: primaryColor }}
+              >
+                <Plus className="w-4 h-4" />
+                Nuevo Ticket
+              </Button>
+            </div>
+
+            {loadingTickets ? (
+              <Card>
+                <CardContent className="pt-5 flex items-center justify-center py-8">
+                  <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                </CardContent>
+              </Card>
+            ) : tickets.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6 text-center py-12">
+                  <TicketIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500">Aún no has creado tickets</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {tickets.map((t) => {
+                  const otMatch = t.ot_id
+                    ? ordenes.find((o) => String(o.id) === String(t.ot_id))
+                    : undefined;
+                  return (
+                    <Card key={t.id}>
+                      <CardContent className="pt-4 pb-4 space-y-2">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-800">{t.titulo}</p>
+                            <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">
+                              {t.descripcion}
+                            </p>
+                          </div>
+                          <Badge
+                            className={`${ticketEstadoColors[t.estado]} text-white text-[10px] px-1.5 py-0 shrink-0`}
+                          >
+                            {ticketEstadoLabels[t.estado] || t.estado}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t">
+                          <span className="flex items-center gap-1 text-xs text-gray-400">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(t.creado_en).toLocaleDateString("es-CL")}
+                          </span>
+                          {t.ot_id &&
+                            (otMatch ? (
+                              <button
+                                onClick={() => loadOTDetail(otMatch)}
+                                className="text-xs font-medium hover:underline"
+                                style={{ color: primaryColor }}
+                              >
+                                Convertido a OT #{otMatch.numero}
+                              </button>
+                            ) : (
+                              <span className="text-xs text-gray-500">Convertido a OT</span>
+                            ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Dialog Nuevo Ticket */}
+        <Dialog open={ticketDialogOpen} onOpenChange={setTicketDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nuevo Ticket</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="ticket-titulo">Título</Label>
+                <Input
+                  id="ticket-titulo"
+                  value={ticketTitulo}
+                  onChange={(e) => setTicketTitulo(e.target.value)}
+                  placeholder="Resumen breve del problema o solicitud"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="ticket-descripcion">Descripción</Label>
+                <Textarea
+                  id="ticket-descripcion"
+                  value={ticketDescripcion}
+                  onChange={(e) => setTicketDescripcion(e.target.value)}
+                  placeholder="Describe el detalle de tu solicitud"
+                  rows={5}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setTicketDialogOpen(false)}
+                disabled={submittingTicket}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleCrearTicket}
+                disabled={submittingTicket}
+                className="text-white"
+                style={{ backgroundColor: primaryColor }}
+              >
+                {submittingTicket ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "Enviar Ticket"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Footer */}
         <div className="text-center pt-8 pb-4">
