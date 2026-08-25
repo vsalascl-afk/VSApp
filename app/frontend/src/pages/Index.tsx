@@ -200,6 +200,7 @@ export default function IndexPage() {
         onNavigate={setActiveSection}
         onLogout={handleLogout}
         userRole={user.rol}
+        token={token}
       />
 
       {/* Content */}

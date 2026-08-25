@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Empresa, Usuario } from "@/lib/types";
-import { SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY } from "@/lib/supabase";
+import { SUPABASE_URL, SUPABASE_KEY } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,6 +50,7 @@ interface ModulesState {
   reportes_email: boolean;
   grupo_electrogeno: boolean;
   portal_clientes: boolean;
+  tickets: boolean;
 }
 
 const defaultModules: ModulesState = {
@@ -66,6 +67,7 @@ const defaultModules: ModulesState = {
   reportes_email: false,
   grupo_electrogeno: false,
   portal_clientes: false,
+  tickets: false,
 };
 
 const defaultEmpresa: Omit<Empresa, "id" | "created_at"> = {
@@ -104,6 +106,7 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
   const [empresaModulesPortal, setEmpresaModulesPortal] = useState<Record<string, boolean>>({});
   const [empresaModulesMantBMS, setEmpresaModulesMantBMS] = useState<Record<string, boolean>>({});
   const [empresaModulesOpBMS, setEmpresaModulesOpBMS] = useState<Record<string, boolean>>({});
+  const [empresaModulesTickets, setEmpresaModulesTickets] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -165,15 +168,13 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
   }, [token]);
 
   const fetchEmpresaModules = useCallback(async () => {
-    const authKey = SUPABASE_SERVICE_KEY || token;
-    const apiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
     try {
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/company_modules?module_name=in.(ordenes,checklists,mantencion_bms,operacion_bms,reportes_excel,reportes_ea,reportes_email,qr_equipos,grupo_electrogeno,inventario,programacion,cotizaciones,portal_clientes)&select=empresa_id,module_name,active`,
+        `${SUPABASE_URL}/rest/v1/company_modules?module_name=in.(ordenes,checklists,mantencion_bms,operacion_bms,reportes_excel,reportes_ea,reportes_email,qr_equipos,grupo_electrogeno,inventario,programacion,cotizaciones,portal_clientes,tickets)&select=empresa_id,module_name,active`,
         {
           headers: {
-            apikey: apiKey,
-            Authorization: `Bearer ${authKey}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -193,6 +194,7 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
         const mapPortal: Record<string, boolean> = {};
         const mapMantBMS: Record<string, boolean> = {};
         const mapOpBMS: Record<string, boolean> = {};
+        const mapTickets: Record<string, boolean> = {};
         if (Array.isArray(data)) {
           for (const row of data) {
             if (row.module_name === "checklists") {
@@ -221,6 +223,8 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
               mapMantBMS[row.empresa_id] = row.active;
             } else if (row.module_name === "operacion_bms") {
               mapOpBMS[row.empresa_id] = row.active;
+            } else if (row.module_name === "tickets") {
+              mapTickets[row.empresa_id] = row.active;
             }
           }
         }
@@ -237,6 +241,7 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
         setEmpresaModulesPortal(mapPortal);
         setEmpresaModulesMantBMS(mapMantBMS);
         setEmpresaModulesOpBMS(mapOpBMS);
+        setEmpresaModulesTickets(mapTickets);
       }
     } catch {
       // silently fail
@@ -283,6 +288,7 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
       reportes_email: empresaModulesReportEmail[emp.id] ?? false,
       grupo_electrogeno: empresaModulesGE[emp.id] ?? false,
       portal_clientes: empresaModulesPortal[emp.id] ?? false,
+      tickets: empresaModulesTickets[emp.id] ?? false,
     });
     setShowDialog(true);
   };
@@ -397,111 +403,38 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
 
       // Save module assignments
       if (empresaId) {
-        // Use service key if available for full RLS bypass
-        // If no service key, use user token with anon key
-        const serviceKey = SUPABASE_SERVICE_KEY;
-        const authKey = serviceKey || token;
-        const apiKey = serviceKey || SUPABASE_KEY;
+        const moduleErrors: string[] = [];
 
-        // Debug: log what auth method we're using
-        console.log("[Modules] Auth method:", serviceKey ? "SERVICE_KEY" : "USER_TOKEN", "empresa:", empresaId);
-
-        // Helper to upsert a module using raw SQL via Supabase RPC
-        // This bypasses all PostgREST constraint issues
+        // Upsert directo sobre el constraint unico (empresa_id, module_name) usando
+        // el token del usuario autenticado + anon key. La tabla company_modules
+        // tiene una politica RLS que permite escritura a superadmin, asi que no
+        // hace falta la service key (Supabase la bloquea desde el navegador).
         const upsertModule = async (moduleName: string, active: boolean) => {
-          try {
-            console.log(`[Modules] Saving ${moduleName} = ${active} for empresa ${empresaId}`);
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/company_modules?on_conflict=empresa_id,module_name`, {
+            method: "POST",
+            headers: {
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+              Prefer: "resolution=merge-duplicates,return=representation",
+            },
+            body: JSON.stringify({
+              empresa_id: empresaId,
+              module_name: moduleName,
+              active: active === true,
+            }),
+          });
 
-            // Use raw SQL via Supabase's pg endpoint to do a proper INSERT ON CONFLICT
-            // This works regardless of which constraints exist on the table
-            const sql = `
-              INSERT INTO company_modules (empresa_id, module_name, active)
-              VALUES ('${empresaId}', '${moduleName}', ${active === true})
-              ON CONFLICT (empresa_id, module_name) DO UPDATE SET active = ${active === true}
-            `;
-
-            // Try using the rpc endpoint with raw SQL
-            const rpcRes = await fetch(
-              `${SUPABASE_URL}/rest/v1/rpc/exec_sql`,
-              {
-                method: "POST",
-                headers: {
-                  apikey: apiKey,
-                  Authorization: `Bearer ${authKey}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ query: sql }),
-              }
-            );
-
-            if (rpcRes.ok) {
-              console.log(`[Modules] ${moduleName} saved via RPC`);
-              return;
+          if (!res.ok) {
+            const errText = await res.text();
+            let errorMsg = errText;
+            try {
+              const errJson = JSON.parse(errText);
+              errorMsg = errJson.message || errJson.error || errText;
+            } catch {
+              // dejar el texto crudo si no es JSON
             }
-
-            // RPC function doesn't exist - use PostgREST approach
-            // First try: DELETE existing + INSERT new (atomic replacement)
-            console.log(`[Modules] RPC not available, using DELETE+INSERT for ${moduleName}`);
-
-            // Delete any existing record for this empresa+module
-            const deleteRes = await fetch(
-              `${SUPABASE_URL}/rest/v1/company_modules?empresa_id=eq.${empresaId}&module_name=eq.${moduleName}`,
-              {
-                method: "DELETE",
-                headers: {
-                  apikey: apiKey,
-                  Authorization: `Bearer ${authKey}`,
-                  Prefer: "return=representation",
-                },
-              }
-            );
-
-            console.log(`[Modules] DELETE ${moduleName} status: ${deleteRes.status}`);
-
-            // Now INSERT the new record
-            const insertRes = await fetch(
-              `${SUPABASE_URL}/rest/v1/company_modules`,
-              {
-                method: "POST",
-                headers: {
-                  apikey: apiKey,
-                  Authorization: `Bearer ${authKey}`,
-                  "Content-Type": "application/json",
-                  Prefer: "return=representation",
-                },
-                body: JSON.stringify({
-                  empresa_id: empresaId,
-                  module_name: moduleName,
-                  active: active === true,
-                }),
-              }
-            );
-
-            if (insertRes.ok) {
-              const data = await insertRes.json();
-              console.log(`[Modules] ${moduleName} saved via DELETE+INSERT:`, data);
-              return;
-            }
-
-            const errText = await insertRes.text();
-            console.error(`[Modules] INSERT ${moduleName} failed (${insertRes.status}):`, errText);
-
-            // If still failing, it's a constraint issue - provide exact SQL fix
-            if (insertRes.status === 409) {
-              console.error(`[Modules] CONSTRAINT ERROR: The table has incorrect unique constraints.`);
-              console.error(`[Modules] FIX: Run this SQL in Supabase SQL Editor:`);
-              console.error(`ALTER TABLE company_modules DROP CONSTRAINT IF EXISTS company_modules_module_name_key;`);
-              console.error(`ALTER TABLE company_modules DROP CONSTRAINT IF EXISTS company_modules_empresa_id_key;`);
-              console.error(`ALTER TABLE company_modules DROP CONSTRAINT IF EXISTS company_modules_empresa_module_unique;`);
-              console.error(`ALTER TABLE company_modules ADD CONSTRAINT company_modules_empresa_module_unique UNIQUE (empresa_id, module_name);`);
-              toast({
-                title: "Error de constraint en BD",
-                description: `La tabla tiene constraints incorrectos. Ejecute SETUP_MODULES.sql en Supabase SQL Editor.`,
-                variant: "destructive",
-              });
-            }
-          } catch (err) {
-            console.error(`[Modules] Error saving ${moduleName}:`, err);
+            moduleErrors.push(`${moduleName}: ${errorMsg}`);
           }
         };
 
@@ -519,6 +452,19 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
         await upsertModule("reportes_email", modules.reportes_email);
         await upsertModule("grupo_electrogeno", modules.grupo_electrogeno);
         await upsertModule("portal_clientes", modules.portal_clientes);
+        await upsertModule("tickets", modules.tickets);
+
+        if (moduleErrors.length > 0) {
+          toast({
+            title: "Error al guardar módulos",
+            description: moduleErrors.join(" | "),
+            variant: "destructive",
+          });
+          fetchEmpresas();
+          fetchUserCounts();
+          fetchEmpresaModules();
+          return;
+        }
       }
 
       toast({
@@ -732,6 +678,11 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
                       {empresaModulesPortal[emp.id] && (
                         <Badge variant="outline" className="text-[10px] text-cyan-600 border-cyan-200 bg-cyan-50">
                           Portal
+                        </Badge>
+                      )}
+                      {empresaModulesTickets[emp.id] && (
+                        <Badge variant="outline" className="text-[10px] text-rose-600 border-rose-200 bg-rose-50">
+                          Tickets
                         </Badge>
                       )}
                     </div>
@@ -1293,7 +1244,46 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
                   </Badge>
                   <Switch
                     checked={modules.portal_clientes}
-                    onCheckedChange={(v) => setModules((m) => ({ ...m, portal_clientes: v }))}
+                    onCheckedChange={(v) =>
+                      setModules((m) => ({
+                        ...m,
+                        portal_clientes: v,
+                        // Si se desactiva el Portal de Clientes, Tickets no puede
+                        // quedar activo (depende de él) para evitar un estado inconsistente.
+                        tickets: v ? m.tickets : false,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-2 px-2 bg-white rounded border">
+                <div>
+                  <p className="text-sm font-medium">Solicitudes de Clientes (Tickets)</p>
+                  {modules.portal_clientes ? (
+                    <p className="text-xs text-muted-foreground">
+                      Los clientes reportan solicitudes desde su portal, que tu equipo asigna a técnicos por región
+                    </p>
+                  ) : (
+                    <p className="text-xs text-amber-600">
+                      Requiere activar primero el Portal de Clientes
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] ${
+                      modules.tickets
+                        ? "text-green-600 border-green-300 bg-green-50"
+                        : "text-red-500 border-red-200 bg-red-50"
+                    }`}
+                  >
+                    {modules.tickets ? "Activo" : "Suspendido"}
+                  </Badge>
+                  <Switch
+                    checked={modules.tickets}
+                    disabled={!modules.portal_clientes}
+                    onCheckedChange={(v) => setModules((m) => ({ ...m, tickets: v }))}
                   />
                 </div>
               </div>

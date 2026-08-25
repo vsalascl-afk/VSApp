@@ -133,6 +133,7 @@ export default function PortalCliente() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [activeTab, setActiveTab] = useState<"ordenes" | "checklists" | "tickets">("ordenes");
   const [checklistsModuleActive, setChecklistsModuleActive] = useState(false);
+  const [ticketsModuleActive, setTicketsModuleActive] = useState(false);
   const [tickets, setTickets] = useState<PortalTicket[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
@@ -223,7 +224,7 @@ export default function PortalCliente() {
   async function checkModules(empresaId: string) {
     try {
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/company_modules?empresa_id=eq.${empresaId}&module_name=eq.checklists&active=eq.true`,
+        `${SUPABASE_URL}/rest/v1/company_modules?empresa_id=eq.${empresaId}&module_name=in.(checklists,tickets)&active=eq.true`,
         {
           headers: {
             apikey: SUPABASE_KEY,
@@ -234,7 +235,9 @@ export default function PortalCliente() {
       );
       if (res.ok) {
         const data = await res.json();
-        setChecklistsModuleActive(data && data.length > 0);
+        const rows: Array<{ module_name: string }> = Array.isArray(data) ? data : [];
+        setChecklistsModuleActive(rows.some((r) => r.module_name === "checklists"));
+        setTicketsModuleActive(rows.some((r) => r.module_name === "tickets"));
       }
     } catch {
       // silently fail
@@ -742,18 +745,20 @@ export default function PortalCliente() {
               Checklists
             </button>
           )}
-          <button
-            onClick={() => setActiveTab("tickets")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === "tickets"
-                ? "text-white shadow-md"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
-            style={activeTab === "tickets" ? { backgroundColor: primaryColor } : undefined}
-          >
-            <TicketIcon className="w-4 h-4" />
-            Tickets
-          </button>
+          {ticketsModuleActive && (
+            <button
+              onClick={() => setActiveTab("tickets")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === "tickets"
+                  ? "text-white shadow-md"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+              style={activeTab === "tickets" ? { backgroundColor: primaryColor } : undefined}
+            >
+              <TicketIcon className="w-4 h-4" />
+              Tickets
+            </button>
+          )}
         </div>
 
         {/* Stats */}
@@ -921,7 +926,7 @@ export default function PortalCliente() {
         )}
 
         {/* Tab Tickets */}
-        {activeTab === "tickets" && (
+        {activeTab === "tickets" && ticketsModuleActive && (
           <div className="space-y-4">
             <div className="flex justify-end">
               <Button

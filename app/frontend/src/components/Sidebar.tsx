@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEmpresa } from "@/lib/empresaContext";
-import { SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY } from "@/lib/supabase";
+import { SUPABASE_URL, SUPABASE_KEY } from "@/lib/supabase";
 
 type Section =
   | "ordenes"
@@ -50,6 +50,7 @@ interface SidebarProps {
   onNavigate: (section: Section) => void;
   onLogout: () => void;
   userRole?: string;
+  token: string;
 }
 
 interface MenuItem {
@@ -73,6 +74,7 @@ export default function Sidebar({
   onNavigate,
   onLogout,
   userRole,
+  token,
 }: SidebarProps) {
   const { empresa, colorSecundario } = useEmpresa();
 
@@ -90,13 +92,12 @@ export default function Sidebar({
     if (!empresa) return;
     const fetchModules = async () => {
       try {
-        const authKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
         const res = await fetch(
           `${SUPABASE_URL}/rest/v1/company_modules?empresa_id=eq.${empresa.id}&active=eq.true`,
           {
             headers: {
               apikey: SUPABASE_KEY,
-              Authorization: `Bearer ${authKey}`,
+              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           }
@@ -114,15 +115,12 @@ export default function Sidebar({
       }
     };
     fetchModules();
-  }, [empresa?.id]);
+  }, [empresa?.id, token]);
 
   // Fetch OT counts for dynamic badges
   const fetchOTCounts = useCallback(async () => {
     if (!empresa) return;
     try {
-      const authKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
-      const token = authKey;
-
       // Fetch pendientes count
       const resPend = await fetch(
         `${SUPABASE_URL}/rest/v1/ordenes_trabajo?empresa_id=eq.${empresa.id}&estado=eq.pendiente&select=id`,
@@ -156,7 +154,7 @@ export default function Sidebar({
     } catch {
       // ignore
     }
-  }, [empresa?.id]);
+  }, [empresa?.id, token]);
 
   useEffect(() => {
     fetchOTCounts();
@@ -241,6 +239,7 @@ export default function Sidebar({
           label: "Tickets",
           icon: <Ticket className="w-5 h-5" />,
           roles: ["admin", "superadmin", "supervisor", "tecnico"],
+          licensed: "tickets",
         },
       ],
     },
