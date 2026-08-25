@@ -804,6 +804,12 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
       const apiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
       const now = new Date();
 
+      const finalTecnicoId = otForm.tecnico_id || user.auth_id;
+      const finalTecnicoNombre =
+        finalTecnicoId === user.auth_id
+          ? user.nombre
+          : otTecnicos.find((t) => t.auth_id === finalTecnicoId)?.nombre || "";
+
       const body = {
         numero: "OT-" + Date.now(),
         cliente: empresa.nombre,
@@ -814,7 +820,8 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
         estado: "pendiente",
         notas: otForm.notas,
         fecha_inicio: now.toISOString(),
-        tecnico_id: otForm.tecnico_id || user.auth_id,
+        tecnico_id: finalTecnicoId,
+        tecnico_nombre: finalTecnicoNombre,
         empresa_id: empresa.id,
         codigo_activo: selectedEquipo.codigo_activo,
       };

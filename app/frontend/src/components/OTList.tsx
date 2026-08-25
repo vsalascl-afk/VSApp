@@ -283,6 +283,10 @@ export default function OTList({ user, token, refreshKey }: OTListProps) {
       // Include tecnico_id if supervisor/admin is reassigning
       if (canReassign && editForm.tecnico_id) {
         body.tecnico_id = editForm.tecnico_id;
+        const tecnicoNombre = editTecnicos.find((t) => t.auth_id === editForm.tecnico_id)?.nombre;
+        if (tecnicoNombre) {
+          body.tecnico_nombre = tecnicoNombre;
+        }
       }
 
       // If changing to completada, add closure fields

@@ -159,6 +159,11 @@ export default function CreateOTForm({
 
       // Generate fecha_inicio with explicit Chile timezone offset
       const now = new Date();
+      const finalTecnicoId = tecnicoId || user.auth_id;
+      const finalTecnicoNombre =
+        finalTecnicoId === user.auth_id
+          ? user.nombre
+          : tecnicos.find((t) => t.auth_id === finalTecnicoId)?.nombre || "";
       const body = {
         numero: "OT-" + Date.now(),
         cliente,
@@ -170,7 +175,8 @@ export default function CreateOTForm({
         notas,
         firma_por: firmaPor,
         fecha_inicio: now.toISOString(),
-        tecnico_id: tecnicoId || user.auth_id,
+        tecnico_id: finalTecnicoId,
+        tecnico_nombre: finalTecnicoNombre,
         empresa_id: user.empresa_id,
         foto_url: uploadedPhotos,
       };

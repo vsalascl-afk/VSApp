@@ -536,10 +536,12 @@ export default function ProgramacionModule({ user, token, onOTCreated }: Props) 
     setGeneratingOTId(schedule.id);
 
     let tecnicoAuthId = user.auth_id;
+    let tecnicoNombre = user.nombre;
     if (schedule.tecnico_id) {
       const tec = tecnicos.find((t) => String(t.id) === String(schedule.tecnico_id));
       if (tec?.auth_id) {
         tecnicoAuthId = tec.auth_id;
+        tecnicoNombre = tec.nombre;
       }
     }
 
@@ -555,6 +557,7 @@ export default function ProgramacionModule({ user, token, onOTCreated }: Props) 
       firma_por: "",
       fecha_inicio: new Date().toISOString(),
       tecnico_id: tecnicoAuthId,
+      tecnico_nombre: tecnicoNombre,
       empresa_id: empresa.id,
       programacion_id: schedule.id,
       foto_url: [],

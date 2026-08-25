@@ -259,9 +259,15 @@ export default function PortalCliente() {
         }
       );
       if (res.ok) {
-        const data = await res.json();
-        setOrdenes(data || []);
-        setFilteredOrdenes(data || []);
+        const data: OrdenTrabajo[] = await res.json();
+        // Más reciente primero, por fecha de creación de la OT (fecha_inicio)
+        const sorted = Array.isArray(data)
+          ? [...data].sort(
+              (a, b) => new Date(b.fecha_inicio).getTime() - new Date(a.fecha_inicio).getTime()
+            )
+          : [];
+        setOrdenes(sorted);
+        setFilteredOrdenes(sorted);
       }
     } catch {
       // silently fail
