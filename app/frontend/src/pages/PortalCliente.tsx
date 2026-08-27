@@ -41,6 +41,7 @@ import {
   Package,
   Ticket as TicketIcon,
   Plus,
+  BookOpen,
 } from "lucide-react";
 
 interface PortalAccess {
@@ -88,6 +89,22 @@ interface PortalTicket {
   direccion?: string | null;
 }
 
+interface PortalProyecto {
+  id: string;
+  nombre: string;
+  region: string | null;
+  direccion: string | null;
+}
+
+interface PortalLibroObraEntrada {
+  id: string;
+  tipo_evento: string;
+  contenido: string;
+  adjuntos: unknown;
+  creado_en: string;
+  autor_nombre: string;
+}
+
 const estadoColors: Record<string, string> = {
   pendiente: "bg-amber-500",
   en_curso: "bg-sky-500",
@@ -116,6 +133,24 @@ const ticketEstadoLabels: Record<string, string> = {
   descartado: "Descartado",
 };
 
+const libroObraTipoColors: Record<string, string> = {
+  avance: "bg-green-500",
+  incidencia: "bg-red-500",
+  instruccion: "bg-blue-500",
+  material: "bg-amber-500",
+  correccion: "bg-gray-500",
+  otro: "bg-gray-500",
+};
+
+const libroObraTipoLabels: Record<string, string> = {
+  avance: "Avance",
+  incidencia: "Incidencia",
+  instruccion: "Instrucción",
+  material: "Material",
+  correccion: "Corrección",
+  otro: "Otro",
+};
+
 export default function PortalCliente() {
   const { token } = useParams<{ token: string }>();
   const { toast } = useToast();
@@ -131,7 +166,7 @@ export default function PortalCliente() {
   const [checklists, setChecklists] = useState<ChecklistBMS[]>([]);
   const [materiales, setMateriales] = useState<MaterialAsignado[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
-  const [activeTab, setActiveTab] = useState<"ordenes" | "checklists" | "tickets">("ordenes");
+  const [activeTab, setActiveTab] = useState<"ordenes" | "checklists" | "tickets" | "libro_obra">("ordenes");
   const [checklistsModuleActive, setChecklistsModuleActive] = useState(false);
   const [ticketsModuleActive, setTicketsModuleActive] = useState(false);
   const [tickets, setTickets] = useState<PortalTicket[]>([]);
@@ -142,6 +177,12 @@ export default function PortalCliente() {
   const [ticketDireccion, setTicketDireccion] = useState("");
   const [ticketDescripcion, setTicketDescripcion] = useState("");
   const [submittingTicket, setSubmittingTicket] = useState(false);
+  const [libroObraModuleActive, setLibroObraModuleActive] = useState(false);
+  const [libroObraProyectos, setLibroObraProyectos] = useState<PortalProyecto[]>([]);
+  const [loadingLibroObraProyectos, setLoadingLibroObraProyectos] = useState(false);
+  const [selectedProyectoId, setSelectedProyectoId] = useState("");
+  const [libroObraEntradas, setLibroObraEntradas] = useState<PortalLibroObraEntrada[]>([]);
+  const [loadingLibroObraEntradas, setLoadingLibroObraEntradas] = useState(false);
 
   // Validar token y obtener acceso
   useEffect(() => {
@@ -224,7 +265,7 @@ export default function PortalCliente() {
   async function checkModules(empresaId: string) {
     try {
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/company_modules?empresa_id=eq.${empresaId}&module_name=in.(checklists,tickets)&active=eq.true`,
+        `${SUPABASE_URL}/rest/v1/company_modules?empresa_id=eq.${empresaId}&module_name=in.(checklists,tickets,libro_obra)&active=eq.true`,
         {
           headers: {
             apikey: SUPABASE_KEY,
@@ -238,6 +279,7 @@ export default function PortalCliente() {
         const rows: Array<{ module_name: string }> = Array.isArray(data) ? data : [];
         setChecklistsModuleActive(rows.some((r) => r.module_name === "checklists"));
         setTicketsModuleActive(rows.some((r) => r.module_name === "tickets"));
+        setLibroObraModuleActive(rows.some((r) => r.module_name === "libro_obra"));
       }
     } catch {
       // silently fail
@@ -469,6 +511,75 @@ export default function PortalCliente() {
       setSubmittingTicket(false);
     }
   }
+
+  // Cargar proyectos del cliente (Libro de Obra)
+  const loadLibroObraProyectos = useCallback(async () => {
+    if (!token) return;
+    setLoadingLibroObraProyectos(true);
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_portal_proyectos`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ p_token: token }),
+      });
+      if (res.ok) {
+        const data: PortalProyecto[] = await res.json();
+        const proyectos = data || [];
+        setLibroObraProyectos(proyectos);
+        setSelectedProyectoId((prev) =>
+          prev && proyectos.some((p) => p.id === prev) ? prev : proyectos[0]?.id || ""
+        );
+      }
+    } catch {
+      setLibroObraProyectos([]);
+    } finally {
+      setLoadingLibroObraProyectos(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (activeTab === "libro_obra") {
+      loadLibroObraProyectos();
+    }
+  }, [activeTab, loadLibroObraProyectos]);
+
+  // Cargar entradas del libro de obra del proyecto seleccionado
+  const loadLibroObraEntradas = useCallback(
+    async (proyectoId: string) => {
+      if (!token || !proyectoId) return;
+      setLoadingLibroObraEntradas(true);
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_portal_libro_obra`, {
+          method: "POST",
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ p_token: token, p_proyecto_id: proyectoId }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setLibroObraEntradas(data || []);
+        }
+      } catch {
+        setLibroObraEntradas([]);
+      } finally {
+        setLoadingLibroObraEntradas(false);
+      }
+    },
+    [token]
+  );
+
+  useEffect(() => {
+    if (activeTab === "libro_obra" && selectedProyectoId) {
+      loadLibroObraEntradas(selectedProyectoId);
+    }
+  }, [activeTab, selectedProyectoId, loadLibroObraEntradas]);
 
   const primaryColor = empresa?.color_primario || "#2563eb";
   const secondaryColor = empresa?.color_secundario || "#0f172a";
@@ -765,6 +876,20 @@ export default function PortalCliente() {
               Tickets
             </button>
           )}
+          {libroObraModuleActive && (
+            <button
+              onClick={() => setActiveTab("libro_obra")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === "libro_obra"
+                  ? "text-white shadow-md"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+              style={activeTab === "libro_obra" ? { backgroundColor: primaryColor } : undefined}
+            >
+              <BookOpen className="w-4 h-4" />
+              Libro de Obra
+            </button>
+          )}
         </div>
 
         {/* Stats */}
@@ -1009,6 +1134,107 @@ export default function PortalCliente() {
                   );
                 })}
               </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab Libro de Obra */}
+        {activeTab === "libro_obra" && libroObraModuleActive && (
+          <div className="space-y-4">
+            {loadingLibroObraProyectos ? (
+              <Card>
+                <CardContent className="pt-5 flex items-center justify-center py-8">
+                  <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                </CardContent>
+              </Card>
+            ) : libroObraProyectos.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6 text-center py-12">
+                  <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500">No tienes proyectos asociados</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {libroObraProyectos.length > 1 && (
+                  <Select value={selectedProyectoId} onValueChange={setSelectedProyectoId}>
+                    <SelectTrigger className="w-full sm:w-72">
+                      <SelectValue placeholder="Selecciona un proyecto" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {libroObraProyectos.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
+                {(() => {
+                  const proyecto = libroObraProyectos.find((p) => p.id === selectedProyectoId);
+                  if (!proyecto) return null;
+                  return (
+                    <Card>
+                      <CardContent className="pt-4 pb-4">
+                        <h2 className="text-lg font-bold text-gray-800">{proyecto.nombre}</h2>
+                        {(proyecto.region || proyecto.direccion) && (
+                          <p className="flex items-center gap-1 text-sm text-gray-500 mt-1">
+                            <MapPin className="w-4 h-4 shrink-0" style={{ color: primaryColor }} />
+                            {[getRegionTicketLabel(proyecto.region), proyecto.direccion]
+                              .filter(Boolean)
+                              .join(" — ")}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
+
+                {loadingLibroObraEntradas ? (
+                  <Card>
+                    <CardContent className="pt-5 flex items-center justify-center py-8">
+                      <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                    </CardContent>
+                  </Card>
+                ) : libroObraEntradas.length === 0 ? (
+                  <Card>
+                    <CardContent className="pt-6 text-center py-12">
+                      <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500">Aún no hay registros en el libro de obra</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-3">
+                    {libroObraEntradas.map((entrada) => (
+                      <Card key={entrada.id}>
+                        <CardContent className="pt-4 pb-4 space-y-2">
+                          <Badge
+                            className={`${libroObraTipoColors[entrada.tipo_evento] || "bg-gray-500"} text-white text-[10px] px-1.5 py-0`}
+                          >
+                            {libroObraTipoLabels[entrada.tipo_evento] || entrada.tipo_evento}
+                          </Badge>
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap">{entrada.contenido}</p>
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t text-xs text-gray-400">
+                            <span className="flex items-center gap-1">
+                              <User className="w-3 h-3" />
+                              {entrada.autor_nombre}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {new Date(entrada.creado_en).toLocaleDateString("es-CL")} ·{" "}
+                              {new Date(entrada.creado_en).toLocaleTimeString("es-CL", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
