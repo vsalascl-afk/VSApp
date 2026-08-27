@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useEmpresa } from "@/lib/empresaContext";
 import type { Usuario } from "@/lib/types";
-import { SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY } from "@/lib/supabase";
+import { SUPABASE_URL, SUPABASE_KEY } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import ClienteFinalSelect, { NUEVO_CLIENTE_VALUE } from "@/components/ClienteFinalSelect";
 import {
   QrCode,
   Plus,
@@ -175,6 +176,8 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
     tecnico_id: "",
   });
   const [savingOT, setSavingOT] = useState(false);
+  const [otClienteFinalId, setOtClienteFinalId] = useState("");
+  const [otClienteNombre, setOtClienteNombre] = useState("");
   const [otTecnicos, setOtTecnicos] = useState<{ auth_id: string; nombre: string; rol?: string }[]>([]);
   const [loadingTecnicos, setLoadingTecnicos] = useState(false);
 
@@ -219,14 +222,12 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
     const isPrivileged = user.rol === "superadmin" || user.rol === "admin";
 
     try {
-      const authKey = SUPABASE_SERVICE_KEY || token;
-      const apiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/company_modules?empresa_id=eq.${empresa.id}&module_name=eq.qr_equipos`,
         {
           headers: {
-            apikey: apiKey,
-            Authorization: `Bearer ${authKey}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -252,14 +253,12 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
   async function fetchEquipos() {
     if (!empresa) return;
     try {
-      const authKey = SUPABASE_SERVICE_KEY || token;
-      const apiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/equipos_bms?empresa_id=eq.${empresa.id}&order=nombre.asc`,
         {
           headers: {
-            apikey: apiKey,
-            Authorization: `Bearer ${authKey}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -286,8 +285,6 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
 
     setSaving(true);
     try {
-      const authKey = SUPABASE_SERVICE_KEY || token;
-      const apiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
       const body = { ...form, empresa_id: empresa.id };
 
       let url = `${SUPABASE_URL}/rest/v1/equipos_bms`;
@@ -301,8 +298,8 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
       const res = await fetch(url, {
         method,
         headers: {
-          apikey: apiKey,
-          Authorization: `Bearer ${authKey}`,
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
           Prefer: "return=representation",
         },
@@ -333,15 +330,13 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
     if (!confirm(`¿Eliminar equipo "${equipo.nombre}"?`)) return;
 
     try {
-      const authKey = SUPABASE_SERVICE_KEY || token;
-      const apiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/equipos_bms?id=eq.${equipo.id}`,
         {
           method: "DELETE",
           headers: {
-            apikey: apiKey,
-            Authorization: `Bearer ${authKey}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -460,14 +455,12 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
       // Buscar equipo por ID
       let equipo = equipos.find((e) => e.id === equipoId);
       if (!equipo) {
-        const authKey = SUPABASE_SERVICE_KEY || token;
-        const apiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
         const res = await fetch(
           `${SUPABASE_URL}/rest/v1/equipos_bms?id=eq.${equipoId}`,
           {
             headers: {
-              apikey: apiKey,
-              Authorization: `Bearer ${authKey}`,
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           }
@@ -518,14 +511,12 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
     if (!empresa) return;
     setLoadingHistorial(true);
     try {
-      const authKey = SUPABASE_SERVICE_KEY || token;
-      const apiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/checklist_bms?empresa_id=eq.${empresa.id}&informacion_general->>codigo_activo=eq.${encodeURIComponent(equipo.codigo_activo)}&order=created_at.desc&limit=50`,
         {
           headers: {
-            apikey: apiKey,
-            Authorization: `Bearer ${authKey}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -543,14 +534,12 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
   const fetchHistorialCorrectivo = useCallback(async (equipo: EquipoBMS) => {
     if (!empresa) return;
     try {
-      const authKey = SUPABASE_SERVICE_KEY || token;
-      const apiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/ordenes_trabajo?empresa_id=eq.${empresa.id}&codigo_activo=eq.${encodeURIComponent(equipo.codigo_activo)}&order=fecha_inicio.desc&limit=50`,
         {
           headers: {
-            apikey: apiKey,
-            Authorization: `Bearer ${authKey}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -568,14 +557,12 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
     if (!empresa) return;
     setLoadingDocs(true);
     try {
-      const authKey = SUPABASE_SERVICE_KEY || token;
-      const apiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/activo_documentos?empresa_id=eq.${empresa.id}&equipo_id=eq.${equipo.id}&order=created_at.desc`,
         {
           headers: {
-            apikey: apiKey,
-            Authorization: `Bearer ${authKey}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -611,9 +598,6 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
 
     setUploadingDoc(true);
     try {
-      const authKey = SUPABASE_SERVICE_KEY || token;
-      const apiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
-
       // Upload file to Supabase Storage
       const fileExt = selectedFile.name.split(".").pop() || "pdf";
       const fileName = `${empresa.id}/${selectedEquipo.id}/${Date.now()}_${selectedFile.name}`;
@@ -623,8 +607,8 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
         {
           method: "POST",
           headers: {
-            apikey: apiKey,
-            Authorization: `Bearer ${authKey}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
             "Content-Type": selectedFile.type || "application/octet-stream",
             "x-upsert": "true",
           },
@@ -656,8 +640,8 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
       const res = await fetch(`${SUPABASE_URL}/rest/v1/activo_documentos`, {
         method: "POST",
         headers: {
-          apikey: apiKey,
-          Authorization: `Bearer ${authKey}`,
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
           Prefer: "return=representation",
         },
@@ -686,9 +670,6 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
     if (!confirm(`¿Eliminar documento "${doc.nombre}"?`)) return;
 
     try {
-      const authKey = SUPABASE_SERVICE_KEY || token;
-      const apiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
-
       // Delete from storage
       const pathMatch = doc.archivo_url.match(/activo_documentos\/(.+)$/);
       if (pathMatch) {
@@ -697,8 +678,8 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
           {
             method: "DELETE",
             headers: {
-              apikey: apiKey,
-              Authorization: `Bearer ${authKey}`,
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${token}`,
             },
           }
         );
@@ -710,8 +691,8 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
         {
           method: "DELETE",
           headers: {
-            apikey: apiKey,
-            Authorization: `Bearer ${authKey}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -742,13 +723,12 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
     if (!empresa) return;
     setLoadingTecnicos(true);
     try {
-      const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY;
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/usuarios?empresa_id=eq.${empresa.id}&select=auth_id,nombre,rol,region&order=nombre.asc`,
         {
           headers: {
-            apikey: serviceKey || SUPABASE_KEY,
-            Authorization: `Bearer ${serviceKey || token}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -783,6 +763,8 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
       notas: `Equipo: ${selectedEquipo.nombre}\nCódigo: ${selectedEquipo.codigo_activo}\nUbicación: ${selectedEquipo.ubicacion_edificio || ""} ${selectedEquipo.ubicacion_piso ? "P" + selectedEquipo.ubicacion_piso : ""} ${selectedEquipo.ubicacion_area || ""}`.trim(),
       tecnico_id: user.auth_id,
     });
+    setOtClienteFinalId("");
+    setOtClienteNombre("");
     setShowCreateOTDialog(true);
     fetchOtTecnicos();
   }
@@ -797,11 +779,17 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
       });
       return;
     }
+    if (!otClienteNombre.trim()) {
+      toast({
+        title: "Error",
+        description: "El cliente es obligatorio",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setSavingOT(true);
     try {
-      const authKey = SUPABASE_SERVICE_KEY || token;
-      const apiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
       const now = new Date();
 
       const finalTecnicoId = otForm.tecnico_id || user.auth_id;
@@ -812,7 +800,9 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
 
       const body = {
         numero: "OT-" + Date.now(),
-        cliente: empresa.nombre,
+        cliente: otClienteNombre,
+        cliente_final_id:
+          otClienteFinalId && otClienteFinalId !== NUEVO_CLIENTE_VALUE ? otClienteFinalId : null,
         descripcion: otForm.descripcion,
         direccion: `${selectedEquipo.ubicacion_edificio || ""} ${selectedEquipo.ubicacion_piso ? "P" + selectedEquipo.ubicacion_piso : ""} ${selectedEquipo.ubicacion_area || ""}`.trim(),
         tipo_serv: otForm.tipo_serv,
@@ -829,8 +819,8 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
       const res = await fetch(`${SUPABASE_URL}/rest/v1/ordenes_trabajo`, {
         method: "POST",
         headers: {
-          apikey: apiKey,
-          Authorization: `Bearer ${authKey}`,
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
           Prefer: "return=representation",
         },
@@ -962,20 +952,18 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
       }
 
       // Insertar en lotes de 50
-      const authKey = SUPABASE_SERVICE_KEY || token;
-      const apiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
       let insertados = 0;
       let errores = 0;
 
       for (let i = 0; i < mapped.length; i += 50) {
         const batch = mapped.slice(i, i + 50);
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/equipos_bms`, {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/equipos_bms?on_conflict=empresa_id,codigo_activo`, {
           method: "POST",
           headers: {
-            apikey: apiKey,
-            Authorization: `Bearer ${authKey}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
-            Prefer: "return=minimal",
+            Prefer: "resolution=merge-duplicates,return=representation",
           },
           body: JSON.stringify(batch),
         });
@@ -2104,6 +2092,19 @@ export default function QREquiposModule({ user, token, onScanResult, onNavigate 
               <p className="text-xs text-orange-700 mt-1">
                 {selectedEquipo?.nombre} • {selectedEquipo?.codigo_activo} • {selectedEquipo?.ubicacion_edificio || "Sin ubicación"}
               </p>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Cliente *</Label>
+              <ClienteFinalSelect
+                user={user}
+                token={token}
+                value={otClienteFinalId}
+                onChange={(id, nombre) => {
+                  setOtClienteFinalId(id);
+                  setOtClienteNombre(nombre);
+                }}
+              />
             </div>
 
             <div className="space-y-1">

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useEmpresa } from "@/lib/empresaContext";
 import type { Usuario } from "@/lib/types";
-import { SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY } from "@/lib/supabase";
+import { SUPABASE_URL, SUPABASE_KEY } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import ClienteFinalSelect, { NUEVO_CLIENTE_VALUE } from "@/components/ClienteFinalSelect";
 import {
   Calendar,
   Plus,
@@ -179,14 +180,12 @@ export default function ProgramacionModule({ user, token, onOTCreated }: Props) 
       return;
     }
     try {
-      const lAuthKey = SUPABASE_SERVICE_KEY || token;
-      const lApiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/company_modules?empresa_id=eq.${empresa.id}&module_name=eq.programacion`,
         {
           headers: {
-            apikey: lApiKey,
-            Authorization: `Bearer ${lAuthKey}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -220,6 +219,7 @@ export default function ProgramacionModule({ user, token, onOTCreated }: Props) 
   const [confirmGenOT, setConfirmGenOT] = useState<Schedule | null>(null);
   const [otDescripcion, setOtDescripcion] = useState("");
   const [otCliente, setOtCliente] = useState("");
+  const [otClienteFinalId, setOtClienteFinalId] = useState("");
   const [otPrioridad, setOtPrioridad] = useState<"baja" | "media" | "alta">("media");
 
   // View mode
@@ -247,9 +247,6 @@ export default function ProgramacionModule({ user, token, onOTCreated }: Props) 
   const [formDiasAnticipacion, setFormDiasAnticipacion] = useState("7");
   const [saving, setSaving] = useState(false);
 
-  const authKey = SUPABASE_SERVICE_KEY || token;
-  const apiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
-
   const loadSchedules = useCallback(async () => {
     if (!empresa) return;
     setLoading(true);
@@ -258,8 +255,8 @@ export default function ProgramacionModule({ user, token, onOTCreated }: Props) 
         `${SUPABASE_URL}/rest/v1/maintenance_schedules?empresa_id=eq.${empresa.id}&order=proxima_fecha.asc`,
         {
           headers: {
-            apikey: apiKey,
-            Authorization: `Bearer ${authKey}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
           },
         }
       );
@@ -271,7 +268,7 @@ export default function ProgramacionModule({ user, token, onOTCreated }: Props) 
       console.error("Error loading schedules:", err);
     }
     setLoading(false);
-  }, [empresa, apiKey, authKey]);
+  }, [empresa, token]);
 
   const loadOTsVinculadas = useCallback(async () => {
     if (!empresa) return;
@@ -280,8 +277,8 @@ export default function ProgramacionModule({ user, token, onOTCreated }: Props) 
         `${SUPABASE_URL}/rest/v1/ordenes_trabajo?empresa_id=eq.${empresa.id}&programacion_id=not.is.null&select=id,numero,estado,programacion_id`,
         {
           headers: {
-            apikey: apiKey,
-            Authorization: `Bearer ${authKey}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
           },
         }
       );
@@ -292,7 +289,7 @@ export default function ProgramacionModule({ user, token, onOTCreated }: Props) 
     } catch {
       // silently fail
     }
-  }, [empresa, apiKey, authKey]);
+  }, [empresa, token]);
 
   const loadTecnicos = useCallback(async () => {
     if (!empresa) return;
@@ -301,8 +298,8 @@ export default function ProgramacionModule({ user, token, onOTCreated }: Props) 
         `${SUPABASE_URL}/rest/v1/usuarios?empresa_id=eq.${empresa.id}&select=id,auth_id,nombre,rol`,
         {
           headers: {
-            apikey: apiKey,
-            Authorization: `Bearer ${authKey}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
           },
         }
       );
@@ -313,7 +310,7 @@ export default function ProgramacionModule({ user, token, onOTCreated }: Props) 
     } catch (err) {
       console.error("Error loading tecnicos:", err);
     }
-  }, [empresa, apiKey, authKey]);
+  }, [empresa, token]);
 
   // Load plantillas from localStorage
   const loadPlantillas = useCallback(() => {
@@ -432,8 +429,8 @@ export default function ProgramacionModule({ user, token, onOTCreated }: Props) 
           {
             method: "PATCH",
             headers: {
-              apikey: apiKey,
-              Authorization: `Bearer ${authKey}`,
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
               Prefer: "return=minimal",
             },
@@ -446,8 +443,8 @@ export default function ProgramacionModule({ user, token, onOTCreated }: Props) 
           {
             method: "POST",
             headers: {
-              apikey: apiKey,
-              Authorization: `Bearer ${authKey}`,
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
               Prefer: "return=minimal",
             },
@@ -479,8 +476,8 @@ export default function ProgramacionModule({ user, token, onOTCreated }: Props) 
         {
           method: "DELETE",
           headers: {
-            apikey: apiKey,
-            Authorization: `Bearer ${authKey}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
           },
         }
       );
@@ -500,8 +497,8 @@ export default function ProgramacionModule({ user, token, onOTCreated }: Props) 
         {
           method: "PATCH",
           headers: {
-            apikey: apiKey,
-            Authorization: `Bearer ${authKey}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
             Prefer: "return=minimal",
           },
@@ -521,6 +518,7 @@ export default function ProgramacionModule({ user, token, onOTCreated }: Props) 
       `${TIPO_SERV_MAP[schedule.tipo_checklist] || schedule.tipo_checklist} - ${schedule.equipo || schedule.sitio}${schedule.descripcion ? ` - ${schedule.descripcion}` : ""}`
     );
     setOtCliente(schedule.sitio);
+    setOtClienteFinalId("");
     setOtPrioridad("media");
   }
 
@@ -548,6 +546,8 @@ export default function ProgramacionModule({ user, token, onOTCreated }: Props) 
     const body = {
       numero: "OT-" + Date.now(),
       cliente: otCliente.trim(),
+      cliente_final_id:
+        otClienteFinalId && otClienteFinalId !== NUEVO_CLIENTE_VALUE ? otClienteFinalId : null,
       descripcion: otDescripcion.trim(),
       direccion: schedule.sitio,
       tipo_serv: TIPO_SERV_MAP[schedule.tipo_checklist] || schedule.tipo_checklist,
@@ -598,8 +598,8 @@ export default function ProgramacionModule({ user, token, onOTCreated }: Props) 
         {
           method: "PATCH",
           headers: {
-            apikey: apiKey,
-            Authorization: `Bearer ${authKey}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
             Prefer: "return=minimal",
           },
@@ -1588,11 +1588,15 @@ export default function ProgramacionModule({ user, token, onOTCreated }: Props) 
               </div>
 
               <div className="space-y-1.5">
-                <Label>Cliente / Sitio *</Label>
-                <Input
-                  value={otCliente}
-                  onChange={(e) => setOtCliente(e.target.value)}
-                  placeholder="Nombre del cliente"
+                <Label>Cliente *</Label>
+                <ClienteFinalSelect
+                  user={user}
+                  token={token}
+                  value={otClienteFinalId}
+                  onChange={(id, nombre) => {
+                    setOtClienteFinalId(id);
+                    setOtCliente(nombre);
+                  }}
                 />
               </div>
 

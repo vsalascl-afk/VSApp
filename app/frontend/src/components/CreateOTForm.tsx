@@ -19,8 +19,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Upload, X, UserCheck, Loader2 } from "lucide-react";
+import { Plus, Upload, X, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ClienteFinalSelect, { NUEVO_CLIENTE_VALUE } from "@/components/ClienteFinalSelect";
 
 interface CreateOTFormProps {
   user: Usuario;
@@ -40,13 +41,6 @@ interface TecnicoOption {
   region?: string;
 }
 
-interface ClienteFinalOption {
-  id: string;
-  nombre_cliente: string;
-}
-
-const NUEVO_CLIENTE_VALUE = "__nuevo__";
-
 export default function CreateOTForm({
   user,
   token,
@@ -61,10 +55,6 @@ export default function CreateOTForm({
   const [loading, setLoading] = useState(false);
   const [cliente, setCliente] = useState(initialCliente || "");
   const [clienteFinalId, setClienteFinalId] = useState(initialClienteFinalId || "");
-  const [clientesFinales, setClientesFinales] = useState<ClienteFinalOption[]>([]);
-  const [showNuevoCliente, setShowNuevoCliente] = useState(false);
-  const [nuevoClienteNombre, setNuevoClienteNombre] = useState("");
-  const [creandoCliente, setCreandoCliente] = useState(false);
   const [descripcion, setDescripcion] = useState(initialDescripcion || "");
   const [direccion, setDireccion] = useState(initialDireccion || "");
   const [tipoServ, setTipoServ] = useState("");
@@ -124,104 +114,6 @@ export default function CreateOTForm({
       fetchTecnicos();
     }
   }, [open, fetchTecnicos]);
-
-  const fetchClientesFinales = useCallback(async () => {
-    try {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/portal_clientes?empresa_id=eq.${user.empresa_id}&activo=eq.true&select=id,nombre_cliente&order=nombre_cliente.asc`,
-        {
-          headers: {
-            apikey: SUPABASE_KEY,
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setClientesFinales(Array.isArray(data) ? data : []);
-      }
-    } catch {
-      // silently fail
-    }
-  }, [user.empresa_id, token]);
-
-  useEffect(() => {
-    if (open) {
-      fetchClientesFinales();
-    }
-  }, [open, fetchClientesFinales]);
-
-  const handleClienteFinalChange = (value: string) => {
-    if (value === NUEVO_CLIENTE_VALUE) {
-      setClienteFinalId(NUEVO_CLIENTE_VALUE);
-      setShowNuevoCliente(true);
-      return;
-    }
-    setShowNuevoCliente(false);
-    setClienteFinalId(value);
-    const found = clientesFinales.find((c) => c.id === value);
-    if (found) setCliente(found.nombre_cliente);
-  };
-
-  const handleCrearClienteFinal = async () => {
-    if (!nuevoClienteNombre.trim()) {
-      toast({
-        title: "Error",
-        description: "El nombre del cliente es obligatorio",
-        variant: "destructive",
-      });
-      return;
-    }
-    setCreandoCliente(true);
-    try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/portal_clientes`, {
-        method: "POST",
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          Prefer: "return=representation",
-        },
-        body: JSON.stringify({
-          empresa_id: user.empresa_id,
-          nombre_cliente: nuevoClienteNombre.trim(),
-          activo: true,
-        }),
-      });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        let errorMsg = "No se pudo crear el cliente";
-        try {
-          const errJson = JSON.parse(errText);
-          errorMsg = errJson.message || errJson.error || errorMsg;
-        } catch {
-          if (errText) errorMsg = errText;
-        }
-        toast({ title: "Error", description: errorMsg, variant: "destructive" });
-        return;
-      }
-
-      const created = await res.json();
-      const nuevo = Array.isArray(created) ? created[0] : created;
-      if (nuevo?.id) {
-        const nuevaOpcion: ClienteFinalOption = { id: nuevo.id, nombre_cliente: nuevo.nombre_cliente };
-        setClientesFinales((prev) =>
-          [...prev, nuevaOpcion].sort((a, b) => a.nombre_cliente.localeCompare(b.nombre_cliente))
-        );
-        setClienteFinalId(nuevo.id);
-        setCliente(nuevo.nombre_cliente);
-      }
-      setNuevoClienteNombre("");
-      setShowNuevoCliente(false);
-      toast({ title: "Cliente creado", description: "Se agregó correctamente al mantenedor de clientes" });
-    } catch {
-      toast({ title: "Error de conexión", description: "No se pudo crear el cliente", variant: "destructive" });
-    } finally {
-      setCreandoCliente(false);
-    }
-  };
 
   const uploadPhoto = async (file: File): Promise<string | null> => {
     const fileName = `ot_${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
@@ -333,8 +225,6 @@ export default function CreateOTForm({
       // Reset form
       setCliente("");
       setClienteFinalId("");
-      setShowNuevoCliente(false);
-      setNuevoClienteNombre("");
       setDescripcion("");
       setDireccion("");
       setTipoServ("");
@@ -386,38 +276,15 @@ export default function CreateOTForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">Cliente *</Label>
-            <Select value={clienteFinalId} onValueChange={handleClienteFinalChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona un cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {clientesFinales.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.nombre_cliente}
-                  </SelectItem>
-                ))}
-                <SelectItem value={NUEVO_CLIENTE_VALUE}>+ Nuevo cliente...</SelectItem>
-              </SelectContent>
-            </Select>
-            {showNuevoCliente && (
-              <div className="flex items-center gap-2 mt-2">
-                <Input
-                  value={nuevoClienteNombre}
-                  onChange={(e) => setNuevoClienteNombre(e.target.value)}
-                  placeholder="Nombre del nuevo cliente"
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleCrearClienteFinal}
-                  disabled={creandoCliente}
-                  className="shrink-0 bg-blue-600 hover:bg-blue-700"
-                >
-                  {creandoCliente ? <Loader2 className="w-4 h-4 animate-spin" /> : "Guardar"}
-                </Button>
-              </div>
-            )}
+            <ClienteFinalSelect
+              user={user}
+              token={token}
+              value={clienteFinalId}
+              onChange={(id, nombre) => {
+                setClienteFinalId(id);
+                setCliente(nombre);
+              }}
+            />
           </div>
           <div>
             <Label className="text-xs">Dirección</Label>
