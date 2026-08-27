@@ -48,6 +48,7 @@ interface TicketAdmin {
   asignado_a: string | null;
   creado_en: string;
   nombre_cliente?: string | null;
+  portal_cliente_id?: string | null;
 }
 
 interface TecnicoRPCOption {
@@ -453,6 +454,7 @@ export default function TicketsModule({ user, token, onGoToOrdenes }: TicketsMod
               token={token}
               defaultOpen
               initialCliente={otFormTicket.nombre_cliente || ""}
+              initialClienteFinalId={otFormTicket.portal_cliente_id || undefined}
               initialDescripcion={otFormTicket.descripcion}
               initialDireccion={otFormTicket.direccion || ""}
               onCreated={handleOTGenerada}
