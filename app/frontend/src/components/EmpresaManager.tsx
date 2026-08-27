@@ -51,6 +51,7 @@ interface ModulesState {
   grupo_electrogeno: boolean;
   portal_clientes: boolean;
   tickets: boolean;
+  libro_obra: boolean;
 }
 
 const defaultModules: ModulesState = {
@@ -68,6 +69,7 @@ const defaultModules: ModulesState = {
   grupo_electrogeno: false,
   portal_clientes: false,
   tickets: false,
+  libro_obra: false,
 };
 
 const defaultEmpresa: Omit<Empresa, "id" | "created_at"> = {
@@ -107,6 +109,7 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
   const [empresaModulesMantBMS, setEmpresaModulesMantBMS] = useState<Record<string, boolean>>({});
   const [empresaModulesOpBMS, setEmpresaModulesOpBMS] = useState<Record<string, boolean>>({});
   const [empresaModulesTickets, setEmpresaModulesTickets] = useState<Record<string, boolean>>({});
+  const [empresaModulesLibroObra, setEmpresaModulesLibroObra] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -170,7 +173,7 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
   const fetchEmpresaModules = useCallback(async () => {
     try {
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/company_modules?module_name=in.(ordenes,checklists,mantencion_bms,operacion_bms,reportes_excel,reportes_ea,reportes_email,qr_equipos,grupo_electrogeno,inventario,programacion,cotizaciones,portal_clientes,tickets)&select=empresa_id,module_name,active`,
+        `${SUPABASE_URL}/rest/v1/company_modules?module_name=in.(ordenes,checklists,mantencion_bms,operacion_bms,reportes_excel,reportes_ea,reportes_email,qr_equipos,grupo_electrogeno,inventario,programacion,cotizaciones,portal_clientes,tickets,libro_obra)&select=empresa_id,module_name,active`,
         {
           headers: {
             apikey: SUPABASE_KEY,
@@ -195,6 +198,7 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
         const mapMantBMS: Record<string, boolean> = {};
         const mapOpBMS: Record<string, boolean> = {};
         const mapTickets: Record<string, boolean> = {};
+        const mapLibroObra: Record<string, boolean> = {};
         if (Array.isArray(data)) {
           for (const row of data) {
             if (row.module_name === "checklists") {
@@ -225,6 +229,8 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
               mapOpBMS[row.empresa_id] = row.active;
             } else if (row.module_name === "tickets") {
               mapTickets[row.empresa_id] = row.active;
+            } else if (row.module_name === "libro_obra") {
+              mapLibroObra[row.empresa_id] = row.active;
             }
           }
         }
@@ -242,6 +248,7 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
         setEmpresaModulesMantBMS(mapMantBMS);
         setEmpresaModulesOpBMS(mapOpBMS);
         setEmpresaModulesTickets(mapTickets);
+        setEmpresaModulesLibroObra(mapLibroObra);
       }
     } catch {
       // silently fail
@@ -289,6 +296,7 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
       grupo_electrogeno: empresaModulesGE[emp.id] ?? false,
       portal_clientes: empresaModulesPortal[emp.id] ?? false,
       tickets: empresaModulesTickets[emp.id] ?? false,
+      libro_obra: empresaModulesLibroObra[emp.id] ?? false,
     });
     setShowDialog(true);
   };
@@ -453,6 +461,7 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
         await upsertModule("grupo_electrogeno", modules.grupo_electrogeno);
         await upsertModule("portal_clientes", modules.portal_clientes);
         await upsertModule("tickets", modules.tickets);
+        await upsertModule("libro_obra", modules.libro_obra);
 
         if (moduleErrors.length > 0) {
           toast({
@@ -683,6 +692,11 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
                       {empresaModulesTickets[emp.id] && (
                         <Badge variant="outline" className="text-[10px] text-rose-600 border-rose-200 bg-rose-50">
                           Tickets
+                        </Badge>
+                      )}
+                      {empresaModulesLibroObra[emp.id] && (
+                        <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-200 bg-emerald-50">
+                          Bitácora
                         </Badge>
                       )}
                     </div>
@@ -1248,9 +1262,11 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
                       setModules((m) => ({
                         ...m,
                         portal_clientes: v,
-                        // Si se desactiva el Portal de Clientes, Tickets no puede
-                        // quedar activo (depende de él) para evitar un estado inconsistente.
+                        // Si se desactiva el Portal de Clientes, Tickets y Libro de
+                        // Obra no pueden quedar activos (dependen de él) para evitar
+                        // un estado inconsistente.
                         tickets: v ? m.tickets : false,
+                        libro_obra: v ? m.libro_obra : false,
                       }))
                     }
                   />
@@ -1284,6 +1300,37 @@ export default function EmpresaManager({ user, token }: EmpresaManagerProps) {
                     checked={modules.tickets}
                     disabled={!modules.portal_clientes}
                     onCheckedChange={(v) => setModules((m) => ({ ...m, tickets: v }))}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-2 px-2 bg-white rounded border">
+                <div>
+                  <p className="text-sm font-medium">Libro de Obra (Bitácora)</p>
+                  {modules.portal_clientes ? (
+                    <p className="text-xs text-muted-foreground">
+                      Bitácora de proyecto para técnicos y clientes, con registro de eventos inmutable
+                    </p>
+                  ) : (
+                    <p className="text-xs text-amber-600">
+                      Requiere activar primero el Portal de Clientes
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] ${
+                      modules.libro_obra
+                        ? "text-green-600 border-green-300 bg-green-50"
+                        : "text-red-500 border-red-200 bg-red-50"
+                    }`}
+                  >
+                    {modules.libro_obra ? "Activo" : "Suspendido"}
+                  </Badge>
+                  <Switch
+                    checked={modules.libro_obra}
+                    disabled={!modules.portal_clientes}
+                    onCheckedChange={(v) => setModules((m) => ({ ...m, libro_obra: v }))}
                   />
                 </div>
               </div>

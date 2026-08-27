@@ -20,6 +20,7 @@ import {
   FileText,
   Mail,
   Ticket,
+  HardHat,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEmpresa } from "@/lib/empresaContext";
@@ -41,7 +42,8 @@ type Section =
   | "inventario"
   | "cotizaciones"
   | "portal_clientes"
-  | "tickets";
+  | "tickets"
+  | "proyectos";
 
 interface SidebarProps {
   open: boolean;
@@ -240,6 +242,13 @@ export default function Sidebar({
           icon: <Ticket className="w-5 h-5" />,
           roles: ["admin", "superadmin", "supervisor", "tecnico"],
           licensed: "tickets",
+        },
+        {
+          id: "proyectos",
+          label: "Proyectos",
+          icon: <HardHat className="w-5 h-5" />,
+          roles: ["admin", "superadmin", "supervisor"],
+          licensed: "libro_obra",
         },
       ],
     },

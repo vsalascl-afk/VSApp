@@ -18,6 +18,7 @@ import InventarioModule from "@/components/InventarioModule";
 import CotizacionesModule from "@/components/CotizacionesModule";
 import PortalClientesAdmin from "@/components/PortalClientesAdmin";
 import TicketsModule from "@/components/TicketsModule";
+import ProyectosModule from "@/components/ProyectosModule";
 import NotificationBell from "@/components/NotificationBell";
 import { Toaster } from "@/components/ui/toaster";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -29,7 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Menu, LogOut, Zap, ClipboardList, BarChart3, Plus } from "lucide-react";
 
-type Section = "ordenes" | "admin" | "empresas" | "checklists" | "checklists_mantencion" | "checklists_operacion" | "checklists_grupo_electrogeno" | "qr_equipos" | "reportabilidad_excel" | "reportabilidad_informes" | "reportabilidad_email" | "programacion" | "inventario" | "cotizaciones" | "portal_clientes" | "tickets";
+type Section = "ordenes" | "admin" | "empresas" | "checklists" | "checklists_mantencion" | "checklists_operacion" | "checklists_grupo_electrogeno" | "qr_equipos" | "reportabilidad_excel" | "reportabilidad_informes" | "reportabilidad_email" | "programacion" | "inventario" | "cotizaciones" | "portal_clientes" | "tickets" | "proyectos";
 
 function getInitials(name: string | undefined | null): string {
   if (!name || typeof name !== "string") return "--";
@@ -359,6 +360,11 @@ export default function IndexPage() {
             onGoToOrdenes={() => setActiveSection("ordenes")}
           />
         )}
+
+        {activeSection === "proyectos" &&
+          (user.rol === "superadmin" || user.rol === "admin" || user.rol === "supervisor") && (
+            <ProyectosModule user={user} token={token} />
+          )}
       </main>
 
       <Toaster />
