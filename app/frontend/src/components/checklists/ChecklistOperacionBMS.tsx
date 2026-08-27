@@ -33,7 +33,6 @@ interface EditRecordOp {
     observaciones_turno: string;
   };
   especialidades_data: EspecialidadOperacion[];
-  bitacora: string;
   historial_modificaciones?: ModificacionEntry[];
   hora_creacion?: string;
   hora_cierre?: string;
@@ -268,7 +267,6 @@ export default function ChecklistOperacionBMS({ user, token, editRecord, onEditD
   const [especialidades, setEspecialidades] = useState<EspecialidadOperacion[]>(
     editRecord?.especialidades_data || getEspecialidades()
   );
-  const [bitacora, setBitacora] = useState(editRecord?.bitacora || "");
   const [historialMods, setHistorialMods] = useState<ModificacionEntry[]>(editRecord?.historial_modificaciones || []);
 
   function updateItem(espIdx: number, itemIdx: number, field: keyof ItemOperacion, value: string) {
@@ -312,7 +310,6 @@ export default function ChecklistOperacionBMS({ user, token, editRecord, onEditD
         tipo: "operacion_bms",
         informacion_general: infoRonda,
         especialidades_data: especialidades,
-        bitacora,
         historial_modificaciones: newHistorial,
       };
       if (user.region) {
@@ -371,7 +368,7 @@ export default function ChecklistOperacionBMS({ user, token, editRecord, onEditD
           await exportOperacionPDF({
             infoRonda,
             especialidades,
-            bitacora,
+            bitacora: "",
             empresaNombre: empresa.nombre,
             empresaLogoUrl: empresa.logo_url || "",
             horaCreacion: editRecord?.hora_creacion || horaActual,
@@ -393,7 +390,6 @@ export default function ChecklistOperacionBMS({ user, token, editRecord, onEditD
           observaciones_turno: "",
         });
         setEspecialidades(getEspecialidades());
-        setBitacora("");
         setHistorialMods([]);
         setCurrentSection(0);
       } else {
@@ -406,11 +402,10 @@ export default function ChecklistOperacionBMS({ user, token, editRecord, onEditD
     setSaving(false);
   }
 
-  // Sections: Info + 12 especialidades + Bitácora
+  // Sections: Info + 12 especialidades
   const sectionNames = [
     "Información de Ronda",
     ...especialidades.map((e, i) => `${i + 1}. ${e.nombre}`),
-    "Bitácora",
   ];
 
   const totalAlarmas = especialidades.reduce(
@@ -676,33 +671,6 @@ export default function ChecklistOperacionBMS({ user, token, editRecord, onEditD
     );
   };
 
-  const renderBitacora = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Bitácora Digital</CardTitle>
-        <p className="text-xs text-muted-foreground">
-          Registre eventos, acciones ejecutadas y novedades durante la ronda.
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <Textarea
-          value={bitacora}
-          onChange={(e) => setBitacora(e.target.value)}
-          placeholder="Registrar eventos, entregas de turno, solicitudes y/o acciones ejecutadas..."
-          rows={6}
-        />
-        {totalAlarmas > 0 && (
-          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <AlertTriangle className="w-5 h-5 text-red-500" />
-            <span className="text-sm text-red-700 font-medium">
-              Se detectaron {totalAlarmas} alarma(s) en esta ronda. Asegúrese de documentar las acciones tomadas.
-            </span>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-
   return (
     <div className="space-y-4">
       {/* Company logo header */}
@@ -750,7 +718,6 @@ export default function ChecklistOperacionBMS({ user, token, editRecord, onEditD
       {/* Current section */}
       {currentSection === 0 && renderInfoRonda()}
       {currentSection >= 1 && currentSection <= 12 && renderEspecialidad(currentSection - 1)}
-      {currentSection === 13 && renderBitacora()}
 
       {/* Navigation buttons */}
       <div className="flex items-center justify-between pt-4 flex-wrap gap-2">

@@ -190,44 +190,6 @@ export default function ChecklistModule({ user, token, initialSubModulo, standal
             <BarChart3 className="w-4 h-4" />
             Dashboard
           </button>
-          <button
-            type="button"
-            onClick={() => setSubModulo("mantencion")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              subModulo === "mantencion"
-                ? "bg-blue-600 text-white shadow-md"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
-          >
-            <Wrench className="w-4 h-4" />
-            Mantención BMS
-          </button>
-          <button
-            type="button"
-            onClick={() => setSubModulo("operacion")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              subModulo === "operacion"
-                ? "bg-blue-600 text-white shadow-md"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
-          >
-            <Monitor className="w-4 h-4" />
-            Operación BMS
-          </button>
-          {geModuleActive && (
-            <button
-              type="button"
-              onClick={() => setSubModulo("grupo_electrogeno")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                subModulo === "grupo_electrogeno"
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              <Zap className="w-4 h-4" />
-              Grupo Electrógeno
-            </button>
-          )}
         </div>
       )}
 
@@ -303,7 +265,6 @@ export default function ChecklistModule({ user, token, initialSubModulo, standal
                 estado: editingOperacion.estado,
                 informacion_general: editingOperacion.informacion_general as never,
                 especialidades_data: (editingOperacion.especialidades_data || []) as never,
-                bitacora: editingOperacion.bitacora || "",
                 historial_modificaciones: editingOperacion.historial_modificaciones || [],
                 hora_creacion: editingOperacion.hora_creacion,
                 hora_cierre: editingOperacion.hora_cierre,
