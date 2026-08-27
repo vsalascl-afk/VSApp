@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY } from "@/lib/supabase";
+import { SUPABASE_URL, SUPABASE_KEY } from "@/lib/supabase";
 import type { Usuario } from "@/lib/types";
 import { useEmpresa } from "@/lib/empresaContext";
 import { Button } from "@/components/ui/button";
@@ -75,8 +75,6 @@ export default function PortalClientesAdmin({ user, token }: PortalClientesAdmin
   const [deleting, setDeleting] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const authKey = SUPABASE_SERVICE_KEY || token;
-
   const fetchClientes = useCallback(async () => {
     if (!empresa) return;
     setLoading(true);
@@ -86,7 +84,7 @@ export default function PortalClientesAdmin({ user, token }: PortalClientesAdmin
         {
           headers: {
             apikey: SUPABASE_KEY,
-            Authorization: `Bearer ${authKey}`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -99,7 +97,7 @@ export default function PortalClientesAdmin({ user, token }: PortalClientesAdmin
       console.error("Error fetching portal clientes:", err);
     }
     setLoading(false);
-  }, [empresa?.id, authKey]);
+  }, [empresa?.id, token]);
 
   useEffect(() => {
     fetchClientes();
@@ -155,7 +153,7 @@ export default function PortalClientesAdmin({ user, token }: PortalClientesAdmin
             method: "PATCH",
             headers: {
               apikey: SUPABASE_KEY,
-              Authorization: `Bearer ${authKey}`,
+              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
               Prefer: "return=minimal",
             },
@@ -170,7 +168,7 @@ export default function PortalClientesAdmin({ user, token }: PortalClientesAdmin
             method: "POST",
             headers: {
               apikey: SUPABASE_KEY,
-              Authorization: `Bearer ${authKey}`,
+              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
               Prefer: "return=representation",
             },
@@ -212,7 +210,7 @@ export default function PortalClientesAdmin({ user, token }: PortalClientesAdmin
           method: "DELETE",
           headers: {
             apikey: SUPABASE_KEY,
-            Authorization: `Bearer ${authKey}`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -235,7 +233,7 @@ export default function PortalClientesAdmin({ user, token }: PortalClientesAdmin
           method: "PATCH",
           headers: {
             apikey: SUPABASE_KEY,
-            Authorization: `Bearer ${authKey}`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
             Prefer: "return=minimal",
           },

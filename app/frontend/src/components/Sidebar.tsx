@@ -21,6 +21,7 @@ import {
   Mail,
   Ticket,
   HardHat,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEmpresa } from "@/lib/empresaContext";
@@ -43,7 +44,8 @@ type Section =
   | "cotizaciones"
   | "portal_clientes"
   | "tickets"
-  | "proyectos";
+  | "proyectos"
+  | "libro_obra";
 
 interface SidebarProps {
   open: boolean;
@@ -248,6 +250,13 @@ export default function Sidebar({
           label: "Proyectos",
           icon: <HardHat className="w-5 h-5" />,
           roles: ["admin", "superadmin", "supervisor"],
+          licensed: "libro_obra",
+        },
+        {
+          id: "libro_obra",
+          label: "Libro de Obra",
+          icon: <BookOpen className="w-5 h-5" />,
+          roles: ["admin", "superadmin", "supervisor", "tecnico"],
           licensed: "libro_obra",
         },
       ],
