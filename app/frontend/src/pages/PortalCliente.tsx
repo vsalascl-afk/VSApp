@@ -143,10 +143,11 @@ const libroObraTipoColors: Record<string, string> = {
 };
 
 // Tipos de evento habilitados para que el cliente escriba desde el portal
-// (instruccion/material/correccion quedan reservados para uso interno)
+// (material/correccion quedan reservados para uso interno)
 const LIBRO_OBRA_TIPOS_PORTAL = [
   { value: "avance", label: "Avance" },
   { value: "incidencia", label: "Incidencia" },
+  { value: "instruccion", label: "Instrucción" },
   { value: "otro", label: "Otro" },
 ];
 
