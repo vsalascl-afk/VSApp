@@ -142,6 +142,14 @@ const libroObraTipoColors: Record<string, string> = {
   otro: "bg-gray-500",
 };
 
+// Tipos de evento habilitados para que el cliente escriba desde el portal
+// (instruccion/material/correccion quedan reservados para uso interno)
+const LIBRO_OBRA_TIPOS_PORTAL = [
+  { value: "avance", label: "Avance" },
+  { value: "incidencia", label: "Incidencia" },
+  { value: "otro", label: "Otro" },
+];
+
 const libroObraTipoLabels: Record<string, string> = {
   avance: "Avance",
   incidencia: "Incidencia",
@@ -183,6 +191,10 @@ export default function PortalCliente() {
   const [selectedProyectoId, setSelectedProyectoId] = useState("");
   const [libroObraEntradas, setLibroObraEntradas] = useState<PortalLibroObraEntrada[]>([]);
   const [loadingLibroObraEntradas, setLoadingLibroObraEntradas] = useState(false);
+  const [libroObraDialogOpen, setLibroObraDialogOpen] = useState(false);
+  const [libroObraTipoEvento, setLibroObraTipoEvento] = useState("avance");
+  const [libroObraContenido, setLibroObraContenido] = useState("");
+  const [submittingLibroObra, setSubmittingLibroObra] = useState(false);
 
   // Validar token y obtener acceso
   useEffect(() => {
@@ -580,6 +592,59 @@ export default function PortalCliente() {
       loadLibroObraEntradas(selectedProyectoId);
     }
   }, [activeTab, selectedProyectoId, loadLibroObraEntradas]);
+
+  async function handleCrearLibroObra() {
+    if (!token || !selectedProyectoId) return;
+    if (!libroObraContenido.trim()) {
+      toast({
+        title: "Campo requerido",
+        description: "Escribe el contenido de la nota.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSubmittingLibroObra(true);
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/crear_libro_obra_portal`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          p_token: token,
+          p_proyecto_id: selectedProyectoId,
+          p_contenido: libroObraContenido.trim(),
+          p_tipo_evento: libroObraTipoEvento,
+        }),
+      });
+
+      if (!res.ok) {
+        toast({
+          title: "Error",
+          description: "No se pudo guardar la nota. Intenta nuevamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({ title: "Nota agregada", description: "Tu nota fue registrada en el libro de obra." });
+      setLibroObraContenido("");
+      setLibroObraTipoEvento("avance");
+      setLibroObraDialogOpen(false);
+      await loadLibroObraEntradas(selectedProyectoId);
+    } catch {
+      toast({
+        title: "Error de conexión",
+        description: "No se pudo enviar la nota. Revisa tu conexión.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmittingLibroObra(false);
+    }
+  }
 
   const primaryColor = empresa?.color_primario || "#2563eb";
   const secondaryColor = empresa?.color_secundario || "#0f172a";
@@ -1191,6 +1256,17 @@ export default function PortalCliente() {
                   );
                 })()}
 
+                <div className="flex justify-end">
+                  <Button
+                    onClick={() => setLibroObraDialogOpen(true)}
+                    className="gap-2 text-white"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    <Plus className="w-4 h-4" />
+                    Nueva Nota
+                  </Button>
+                </div>
+
                 {loadingLibroObraEntradas ? (
                   <Card>
                     <CardContent className="pt-5 flex items-center justify-center py-8">
@@ -1308,6 +1384,63 @@ export default function PortalCliente() {
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   "Enviar Ticket"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog Nueva Nota (Libro de Obra) */}
+        <Dialog open={libroObraDialogOpen} onOpenChange={setLibroObraDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nueva Nota</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="libro-obra-tipo">Tipo</Label>
+                <Select value={libroObraTipoEvento} onValueChange={setLibroObraTipoEvento}>
+                  <SelectTrigger id="libro-obra-tipo">
+                    <SelectValue placeholder="Selecciona un tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LIBRO_OBRA_TIPOS_PORTAL.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>
+                        {t.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="libro-obra-contenido">Contenido</Label>
+                <Textarea
+                  id="libro-obra-contenido"
+                  value={libroObraContenido}
+                  onChange={(e) => setLibroObraContenido(e.target.value)}
+                  placeholder="Escribe tu nota, observación o incidencia"
+                  rows={5}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setLibroObraDialogOpen(false)}
+                disabled={submittingLibroObra}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleCrearLibroObra}
+                disabled={submittingLibroObra}
+                className="text-white"
+                style={{ backgroundColor: primaryColor }}
+              >
+                {submittingLibroObra ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "Guardar Nota"
                 )}
               </Button>
             </DialogFooter>

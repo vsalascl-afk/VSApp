@@ -40,7 +40,8 @@ interface Proyecto {
 interface EntradaLibroObra {
   id: string;
   proyecto_id: string;
-  autor_id: number | string;
+  autor_id: number | string | null;
+  autor_portal_cliente_id: string | null;
   tipo_evento: string;
   contenido: string;
   creado_en: string;
@@ -85,6 +86,7 @@ export default function LibroObraModule({ user, token }: LibroObraModuleProps) {
   const [entradas, setEntradas] = useState<EntradaLibroObra[]>([]);
   const [loadingEntradas, setLoadingEntradas] = useState(false);
   const [autorNombres, setAutorNombres] = useState<Record<string, string>>({});
+  const [clienteNombres, setClienteNombres] = useState<Record<string, string>>({});
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tipoEvento, setTipoEvento] = useState("avance");
@@ -200,7 +202,7 @@ export default function LibroObraModule({ user, token }: LibroObraModuleProps) {
           const data: EntradaLibroObra[] = await res.json();
           setEntradas(data || []);
 
-          const autorIds = [...new Set(data.map((e) => String(e.autor_id)))];
+          const autorIds = [...new Set(data.filter((e) => e.autor_id != null).map((e) => String(e.autor_id)))];
           if (autorIds.length > 0) {
             const autoresRes = await fetch(
               `${SUPABASE_URL}/rest/v1/usuarios?id=in.(${autorIds.join(",")})&select=id,nombre`,
@@ -219,6 +221,34 @@ export default function LibroObraModule({ user, token }: LibroObraModuleProps) {
               });
               setAutorNombres(map);
             }
+          } else {
+            setAutorNombres({});
+          }
+
+          // Entradas escritas desde el Portal Cliente (autor_id null, autor_portal_cliente_id seteado)
+          const clienteIds = [
+            ...new Set(data.filter((e) => e.autor_portal_cliente_id != null).map((e) => String(e.autor_portal_cliente_id))),
+          ];
+          if (clienteIds.length > 0) {
+            const clientesRes = await fetch(
+              `${SUPABASE_URL}/rest/v1/portal_clientes?id=in.(${clienteIds.join(",")})&select=id,nombre_cliente`,
+              {
+                headers: {
+                  apikey: SUPABASE_KEY,
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+            if (clientesRes.ok) {
+              const clientesData: Array<{ id: string; nombre_cliente: string }> = await clientesRes.json();
+              const map: Record<string, string> = {};
+              clientesData.forEach((c) => {
+                map[String(c.id)] = c.nombre_cliente;
+              });
+              setClienteNombres(map);
+            }
+          } else {
+            setClienteNombres({});
           }
         }
       } catch {
@@ -399,7 +429,16 @@ export default function LibroObraModule({ user, token }: LibroObraModuleProps) {
               <p className="text-sm text-slate-700 whitespace-pre-wrap">{e.contenido}</p>
               <p className="flex items-center gap-1 text-xs text-muted-foreground mt-2 pt-2 border-t">
                 <User className="w-3 h-3" />
-                {autorNombres[String(e.autor_id)] || "Usuario"}
+                {e.autor_portal_cliente_id ? (
+                  <>
+                    {clienteNombres[String(e.autor_portal_cliente_id)] || "Cliente"}
+                    <Badge className="ml-1 bg-sky-100 text-sky-700 hover:bg-sky-100 text-[10px] px-1.5 py-0">
+                      Cliente
+                    </Badge>
+                  </>
+                ) : (
+                  autorNombres[String(e.autor_id)] || "Usuario"
+                )}
               </p>
             </Card>
           ))}
