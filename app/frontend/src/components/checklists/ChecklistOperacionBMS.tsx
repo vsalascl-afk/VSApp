@@ -525,8 +525,7 @@ export default function ChecklistOperacionBMS({ user, token, editRecord, onEditD
             <div className="col-span-1 text-center">Mon.</div>
             <div className="col-span-1 text-center">Ctrl.</div>
             <div className="col-span-3 text-center">Estado</div>
-            <div className="col-span-2">Lectura</div>
-            <div className="col-span-2">Observación</div>
+            <div className="col-span-4">Observación</div>
           </div>
 
           {esp.items.map((item, itemIdx) => (
@@ -566,21 +565,12 @@ export default function ChecklistOperacionBMS({ user, token, editRecord, onEditD
                   ))}
                 </div>
 
-                {/* Valor lectura */}
-                <div className="col-span-2">
-                  <Input
-                    className="text-xs h-7"
-                    placeholder="Valor..."
-                    value={item.valor_lectura}
-                    onChange={(e) => updateItem(espIdx, itemIdx, "valor_lectura", e.target.value)}
-                  />
-                </div>
-
                 {/* Observación */}
-                <div className="col-span-2">
-                  <Input
-                    className="text-xs h-7"
-                    placeholder="Obs..."
+                <div className="col-span-4">
+                  <Textarea
+                    className="text-xs min-h-[28px] resize-y"
+                    rows={2}
+                    placeholder="Observación..."
                     value={item.observacion}
                     onChange={(e) => updateItem(espIdx, itemIdx, "observacion", e.target.value)}
                   />
