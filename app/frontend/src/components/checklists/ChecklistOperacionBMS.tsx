@@ -522,10 +522,8 @@ export default function ChecklistOperacionBMS({ user, token, editRecord, onEditD
           {/* Table header */}
           <div className="hidden sm:grid sm:grid-cols-12 gap-1 text-xs font-medium text-gray-500 border-b pb-1">
             <div className="col-span-3">Sub-especialidad</div>
-            <div className="col-span-1 text-center">Mon.</div>
-            <div className="col-span-1 text-center">Ctrl.</div>
             <div className="col-span-3 text-center">Estado</div>
-            <div className="col-span-4">Observación</div>
+            <div className="col-span-6">Observación</div>
           </div>
 
           {esp.items.map((item, itemIdx) => (
@@ -538,20 +536,6 @@ export default function ChecklistOperacionBMS({ user, token, editRecord, onEditD
               <div className="sm:grid sm:grid-cols-12 sm:gap-1 sm:items-center space-y-2 sm:space-y-0">
                 {/* Subespecialidad */}
                 <div className="col-span-3 text-sm font-medium">{item.subespecialidad}</div>
-
-                {/* Monitoreo */}
-                <div className="col-span-1 text-center">
-                  {item.monitoreo && (
-                    <Badge variant="outline" className="text-[10px] px-1">M</Badge>
-                  )}
-                </div>
-
-                {/* Control */}
-                <div className="col-span-1 text-center">
-                  {item.control && (
-                    <Badge className="bg-blue-100 text-blue-800 text-[10px] px-1">C</Badge>
-                  )}
-                </div>
 
                 {/* Estado */}
                 <div className="col-span-3 flex gap-1 flex-wrap">
@@ -566,7 +550,7 @@ export default function ChecklistOperacionBMS({ user, token, editRecord, onEditD
                 </div>
 
                 {/* Observación */}
-                <div className="col-span-4">
+                <div className="col-span-6">
                   <Textarea
                     className="text-xs min-h-[28px] resize-y"
                     rows={2}
