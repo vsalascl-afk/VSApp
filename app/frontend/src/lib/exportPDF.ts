@@ -234,31 +234,39 @@ export async function exportOTPDF(ot: OrdenTrabajo, empresaNombre?: string, mate
     doc.line(margin, y, pageWidth - margin, y);
     y += 4;
 
-    let xPos = margin;
-    const imgSize = 45;
-    const imgGap = 5;
+    // Fotos más grandes, 2 por fila, centradas dentro del ancho de contenido
+    // (incluye la última fila aunque tenga una sola foto).
+    const imgCols = 2;
+    const imgSize = 75;
+    const imgGap = 10;
 
+    const loadedFotos: string[] = [];
     for (const foto of ot.foto_url) {
       const url = `${SUPABASE_URL}/storage/v1/object/public/fotos_ot/${foto}`;
       const dataURL = await loadImageAsDataURL(url);
+      if (dataURL) loadedFotos.push(dataURL);
+    }
 
-      if (dataURL) {
-        if (xPos + imgSize > pageWidth - margin) {
-          xPos = margin;
-          y += imgSize + imgGap;
-        }
-        checkPageBreak(imgSize + 10);
+    for (let i = 0; i < loadedFotos.length; i += imgCols) {
+      const fila = loadedFotos.slice(i, i + imgCols);
+      const esUltimaFila = i + imgCols >= loadedFotos.length;
+      checkPageBreak(imgSize + 10);
 
+      const rowWidth = fila.length * imgSize + (fila.length - 1) * imgGap;
+      const startX = margin + (contentWidth - rowWidth) / 2;
+
+      fila.forEach((dataURL, idx) => {
         try {
           const format = getImageFormat(dataURL);
+          const xPos = startX + idx * (imgSize + imgGap);
           doc.addImage(dataURL, format, xPos, y, imgSize, imgSize);
-          xPos += imgSize + imgGap;
         } catch {
           // Skip image if it fails to load
         }
-      }
+      });
+
+      y += imgSize + (esUltimaFila ? 8 : imgGap);
     }
-    y += imgSize + 8;
   }
 
   // ===== SIGNATURE =====
