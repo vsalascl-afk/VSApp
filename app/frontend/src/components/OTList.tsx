@@ -912,14 +912,13 @@ export default function OTList({ user, token, refreshKey }: OTListProps) {
     if (!confirmed) return;
 
     try {
-      const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY;
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/ordenes_trabajo?id=eq.${ot.id}&empresa_id=eq.${user.empresa_id}`,
         {
           method: "DELETE",
           headers: {
-            apikey: serviceKey || SUPABASE_KEY,
-            Authorization: `Bearer ${serviceKey || token}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
