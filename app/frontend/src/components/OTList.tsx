@@ -169,13 +169,12 @@ export default function OTList({ user, token, refreshKey }: OTListProps) {
   const fetchEditTecnicos = useCallback(async () => {
     if (!canReassign) return;
     try {
-      const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY;
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/usuarios?empresa_id=eq.${user.empresa_id}&select=auth_id,nombre,rol,region&order=nombre.asc`,
         {
           headers: {
-            apikey: serviceKey || SUPABASE_KEY,
-            Authorization: `Bearer ${serviceKey || token}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -440,7 +439,6 @@ export default function OTList({ user, token, refreshKey }: OTListProps) {
   // ─── Cargar materiales asignados por OT ──────────────────────────────────
   const fetchMaterialesAsignados = useCallback(async (ots: OrdenTrabajo[]) => {
     if (ots.length === 0) return;
-    const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY;
     const otIds = ots.map((ot) => String(ot.id));
     
     try {
@@ -449,8 +447,8 @@ export default function OTList({ user, token, refreshKey }: OTListProps) {
         `${SUPABASE_URL}/rest/v1/inventario_ot_asignacion?ot_id=in.(${otIds.map(id => `"${id}"`).join(",")})&empresa_id=eq.${user.empresa_id}&order=created_at.desc`,
         {
           headers: {
-            apikey: serviceKey || SUPABASE_KEY,
-            Authorization: `Bearer ${serviceKey || token}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -468,8 +466,8 @@ export default function OTList({ user, token, refreshKey }: OTListProps) {
         `${SUPABASE_URL}/rest/v1/catalogo_inventario?id=in.(${itemIds.map(id => `"${id}"`).join(",")})&select=id,nombre,unidad,costo_unitario,categoria`,
         {
           headers: {
-            apikey: serviceKey || SUPABASE_KEY,
-            Authorization: `Bearer ${serviceKey || token}`,
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
