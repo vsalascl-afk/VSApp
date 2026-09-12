@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useEmpresa } from "@/lib/empresaContext";
 import type { Usuario } from "@/lib/types";
-import { SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY } from "@/lib/supabase";
+import { SUPABASE_URL, SUPABASE_KEY } from "@/lib/supabase";
 import { getRegionTicketLabel } from "@/lib/regiones";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -75,8 +75,8 @@ export default function NotificationBell({ user, token }: Props) {
   const generatedRef = useRef(false);
   const usuarioInternoIdRef = useRef<string | null>(null);
 
-  const authKey = SUPABASE_SERVICE_KEY || token;
-  const apiKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
+  const authKey = token;
+  const apiKey = SUPABASE_KEY;
   const totalBadgeCount = unreadCount + ticketsNuevos.length + ticketsAsignados.length;
 
   useEffect(() => {

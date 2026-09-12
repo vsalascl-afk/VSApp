@@ -612,9 +612,8 @@ export default function OTList({ user, token, refreshKey }: OTListProps) {
       // ─── Notificaciones por cambio de estado ───────────────────────────
       const ot = ordenes.find((o) => o.id === id);
       if (ot) {
-        const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY;
-        const notifApiKey = serviceKey || SUPABASE_KEY;
-        const notifAuthKey = serviceKey || token;
+        const notifApiKey = SUPABASE_KEY;
+        const notifAuthKey = token;
         const hoyStr = new Date().toISOString().split("T")[0];
 
         if (nuevoEstado === "en_revision") {
