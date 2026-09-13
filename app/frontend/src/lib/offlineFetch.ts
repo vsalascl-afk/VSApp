@@ -5,7 +5,7 @@
  */
 
 import { addToSyncQueue } from "./offlineDB";
-import { SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY } from "./supabase";
+import { SUPABASE_URL, SUPABASE_KEY } from "./supabase";
 
 interface OfflineFetchOptions {
   type: "checklist_bms" | "orden_trabajo";
@@ -14,7 +14,6 @@ interface OfflineFetchOptions {
   url: string;
   method: "POST" | "PATCH";
   token: string;
-  useServiceKey?: boolean;
 }
 
 export async function offlineSaveFetch(options: OfflineFetchOptions): Promise<{
@@ -24,14 +23,11 @@ export async function offlineSaveFetch(options: OfflineFetchOptions): Promise<{
   error?: string;
   queueId?: string;
 }> {
-  const { type, action, payload, url, method, token, useServiceKey } = options;
-
-  const apiKey = useServiceKey && SUPABASE_SERVICE_KEY ? SUPABASE_SERVICE_KEY : SUPABASE_KEY;
-  const authToken = useServiceKey && SUPABASE_SERVICE_KEY ? SUPABASE_SERVICE_KEY : token;
+  const { type, action, payload, url, method, token } = options;
 
   const headers: Record<string, string> = {
-    apikey: apiKey,
-    Authorization: `Bearer ${authToken}`,
+    apikey: SUPABASE_KEY,
+    Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
     Prefer: "return=representation",
   };

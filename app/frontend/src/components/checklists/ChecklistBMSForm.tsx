@@ -22,7 +22,7 @@ import type {
   EstadoGeneral,
 } from "@/lib/checklistTypes";
 import { TIPOS_HALLAZGO, EQUIPOS_COMPATIBLES } from "@/lib/checklistTypes";
-import { SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY } from "@/lib/supabase";
+import { SUPABASE_URL } from "@/lib/supabase";
 import { offlineSaveFetch, buildSupabaseUrl } from "@/lib/offlineFetch";
 import { generateCorrelativo } from "@/lib/correlativoUtils";
 import { Button } from "@/components/ui/button";
@@ -483,7 +483,6 @@ export default function ChecklistBMSForm({ user, token, editRecord, onEditDone }
 
     setSaving(true);
     try {
-      const serviceKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
       const now = new Date();
       const horaActual = now.toLocaleString("es-CL", { timeZone: "America/Santiago", hour12: false });
 
@@ -552,7 +551,6 @@ export default function ChecklistBMSForm({ user, token, editRecord, onEditDone }
         url,
         method,
         token,
-        useServiceKey: true,
       });
 
       if (!result.success) {

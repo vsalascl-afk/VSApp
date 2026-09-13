@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useEmpresa } from "@/lib/empresaContext";
 import type { Usuario } from "@/lib/types";
-import { SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY } from "@/lib/supabase";
+import { SUPABASE_URL, SUPABASE_KEY } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -68,7 +68,6 @@ export default function ChecklistHistorial({ user, token, tableKey, onEdit }: Pr
     if (!empresa) return;
     setLoading(true);
     try {
-      const serviceKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
       let url = `${SUPABASE_URL}/rest/v1/checklist_bms?empresa_id=eq.${empresa.id}&order=created_at.desc`;
 
       // Filter by type
@@ -89,8 +88,8 @@ export default function ChecklistHistorial({ user, token, tableKey, onEdit }: Pr
 
       const res = await fetch(url, {
         headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });

@@ -259,7 +259,6 @@ export default function ChecklistGrupoElectrogeno({ user, token, editRecord, onE
         url,
         method: "PATCH",
         token,
-        useServiceKey: true,
       });
 
       setSaving(false);
@@ -285,7 +284,6 @@ export default function ChecklistGrupoElectrogeno({ user, token, editRecord, onE
         url,
         method: "POST",
         token,
-        useServiceKey: true,
       });
 
       setSaving(false);

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useEmpresa } from "@/lib/empresaContext";
 import type { Usuario } from "@/lib/types";
-import { SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY } from "@/lib/supabase";
+import { SUPABASE_URL } from "@/lib/supabase";
 import { offlineSaveFetch } from "@/lib/offlineFetch";
 import { generateCorrelativo } from "@/lib/correlativoUtils";
 import { Button } from "@/components/ui/button";
@@ -283,7 +283,6 @@ export default function ChecklistOperacionBMS({ user, token, editRecord, onEditD
 
     setSaving(true);
     try {
-      const serviceKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
       const now = new Date();
       const horaActual = now.toLocaleString("es-CL", { timeZone: "America/Santiago", hour12: false });
 
@@ -339,7 +338,6 @@ export default function ChecklistOperacionBMS({ user, token, editRecord, onEditD
         url,
         method,
         token,
-        useServiceKey: true,
       });
 
       if (!result.success) {

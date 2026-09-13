@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useEmpresa } from "@/lib/empresaContext";
 import type { Usuario } from "@/lib/types";
-import { SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY } from "@/lib/supabase";
+import { SUPABASE_URL, SUPABASE_KEY } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -71,12 +71,11 @@ export default function ChecklistDashboard({ user, token }: Props) {
     if (!empresa) return;
     setLoading(true);
     try {
-      const serviceKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
       const url = `${SUPABASE_URL}/rest/v1/checklist_bms?empresa_id=eq.${empresa.id}&order=created_at.desc&limit=500`;
       const res = await fetch(url, {
         headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
@@ -93,12 +92,11 @@ export default function ChecklistDashboard({ user, token }: Props) {
   async function fetchTecnicos() {
     if (!empresa) return;
     try {
-      const serviceKey = SUPABASE_SERVICE_KEY || SUPABASE_KEY;
       const url = `${SUPABASE_URL}/rest/v1/usuarios?empresa_id=eq.${empresa.id}&select=id,nombre&order=nombre.asc`;
       const res = await fetch(url, {
         headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
